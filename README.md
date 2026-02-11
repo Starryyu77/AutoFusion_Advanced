@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-AutoFusion 是一个用于自动设计视觉-文本融合架构的神经网络架构搜索(NAS)系统，系统性比较 RL 算法、提示策略对架构生成的影响。
+AutoFusion 是一个用于自动设计多模态融合架构的神经网络架构搜索(NAS)系统，系统性比较 RL 算法、提示策略对多模态架构生成的影响。
 
 **核心流程**: Controller → Generator(LLM) → Evaluator(Sandbox) → Reward
 
