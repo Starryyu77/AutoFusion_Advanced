@@ -5,7 +5,7 @@ All evaluation strategies must inherit from BaseEvaluator.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import torch.nn as nn
 
@@ -86,7 +86,7 @@ class BaseEvaluator(ABC):
         """
         return sum(p.numel() for p in model.parameters())
 
-    def compile_code(self, code: str) -> tuple[bool, Any]:
+    def compile_code(self, code: str) -> Tuple[bool, Any]:
         """
         编译代码并返回模块
 

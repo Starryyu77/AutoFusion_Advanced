@@ -101,8 +101,15 @@ def create_reward(config: Dict[str, Any]) -> "MultiObjectiveReward":
     Returns:
         MultiObjectiveReward实例
     """
-    from base import MultiObjectiveReward
-    return MultiObjectiveReward(config)
+    from base import MultiObjectiveReward, ExponentialReward
+
+    # Fix 2: Support ExponentialReward
+    reward_type = config.get('type', 'standard')
+
+    if reward_type == 'exponential':
+        return ExponentialReward(config)
+    else:
+        return MultiObjectiveReward(config)
 
 
 def create_experiment_components(

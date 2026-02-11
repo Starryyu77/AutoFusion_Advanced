@@ -35,7 +35,9 @@ class BaseController(ABC):
         self.config = config
         self.state = SearchState()
         self.max_iterations = config.get('max_iterations', 100)
-        self.early_stop_patience = config.get('early_stop_patience', 20)
+        # Fix 1: Increased patience from 20 to 50, or disable early stopping
+        self.early_stop_patience = config.get('early_stop_patience', 50)
+        self.disable_early_stop = config.get('disable_early_stop', False)
         self.no_improvement_count = 0
 
     @abstractmethod
@@ -66,6 +68,10 @@ class BaseController(ABC):
         # 达到最大迭代次数
         if self.state.iteration >= self.max_iterations:
             return True
+
+        # Fix 1: 支持禁用早停
+        if self.disable_early_stop:
+            return False
 
         # 早停检查
         if self.no_improvement_count >= self.early_stop_patience:

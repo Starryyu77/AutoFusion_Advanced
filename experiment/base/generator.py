@@ -5,7 +5,7 @@ All code generation strategies must inherit from BaseGenerator.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 
 
@@ -86,7 +86,7 @@ class BaseGenerator(ABC):
             code = code[:-3]
         return code.strip()
 
-    def validate_code(self, code: str) -> tuple[bool, Optional[str]]:
+    def validate_code(self, code: str) -> Tuple[bool, Optional[str]]:
         """
         验证代码语法
 

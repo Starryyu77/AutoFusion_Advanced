@@ -1,54 +1,51 @@
-# Phase 2: GDPO Controller Configuration
-# Group Decoupled Policy Optimization with variance explosion protection
-
 controller:
-  algorithm: "gdpo"
-  group_size: 8                 # 组内样本数
-  learning_rate: 1e-5
-  beta: 0.04                    # KL惩罚系数
+  action_dim: 16
+  advantage_clip: 3.0
+  algorithm: gdpo
+  auto_weight_scaling: true
+  beta: 0.04
   clip_range: 0.2
+  disable_early_stop: true
+  early_stop_patience: 50
   entropy_coef: 0.01
+  group_size: 8
+  hidden_dim: 256
+  learning_rate: 1e-5
   max_iterations: 100
-  early_stop_patience: 20
-
-  # 方差爆炸保护 (关键创新)
-  advantage_clip: 3.0           # Clip范围
-  min_std: 1e-4                 # 低于此值不除以std
-  use_robust_norm: false        # 是否使用分位数归一化
-  auto_weight_scaling: true     # 动态平衡各奖励分量
-
-  # 解耦归一化配置
-  reward_keys: ['accuracy', 'efficiency', 'compile_success', 'complexity']
+  min_std: 1e-4
+  reward_keys:
+  - accuracy
+  - efficiency
+  - compile_success
+  - complexity
   reward_weights:
     accuracy: 1.0
-    efficiency: 0.5
     compile_success: 2.0
     complexity: 0.0
-
+    efficiency: 0.5
   state_dim: 64
-  hidden_dim: 256
-  action_dim: 16
-
-generator:
-  strategy: "cot"
-  model: "deepseek-chat"
-  temperature: 0.7
-  max_tokens: 4096
-
+  use_robust_norm: false
 evaluator:
-  type: "sandbox"
-  quick_train_epochs: 5
-  use_lr_decay: true
   batch_size: 8
-
+  num_evals: 3
+  quick_train_epochs: 10
+  type: sandbox
+  use_lr_decay: true
+experiment:
+  name: controller_gdpo
+  output_dir: results/phase2_controllers/gdpo
+generator:
+  max_tokens: 4096
+  model: deepseek-chat
+  strategy: cot
+  temperature: 0.7
 reward:
-  type: "multi_objective"
+  alpha: 3.0
+  baseline: 2.5
+  label_smoothing: true
+  max_sharpened: 10.0
+  type: exponential
   weights:
     accuracy: 1.0
-    efficiency: 0.5
     compile_success: 2.0
-  label_smoothing: true
-
-experiment:
-  name: "controller_gdpo"
-  output_dir: "results/phase2_controllers/gdpo"
+    efficiency: 0.5

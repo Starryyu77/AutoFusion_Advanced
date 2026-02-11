@@ -1,49 +1,58 @@
-# Phase 2: Random Controller Configuration
-# Random search baseline
-
 controller:
-  algorithm: "random"
-  seed: 42
+  algorithm: random
+  disable_early_stop: true
+  early_stop_patience: 50
   max_iterations: 100
-  early_stop_patience: 20
-
   search_space:
-    type: ['attention', 'conv', 'mlp', 'transformer', 'hybrid']
-    fusion_type: ['early', 'late', 'middle', 'hierarchical']
-    hidden_dim:
-      type: 'int'
-      low: 256
-      high: 1024
-    num_layers:
-      type: 'int'
-      low: 2
-      high: 8
+    activation:
+    - gelu
+    - relu
+    - silu
     dropout:
-      type: 'float'
-      low: 0.0
       high: 0.5
-    activation: ['gelu', 'relu', 'silu']
-
-generator:
-  strategy: "cot"
-  model: "deepseek-chat"
-  temperature: 0.7
-  max_tokens: 4096
-
+      low: 0.0
+      type: float
+    fusion_type:
+    - early
+    - late
+    - middle
+    - hierarchical
+    hidden_dim:
+      high: 1024
+      low: 256
+      type: int
+    num_layers:
+      high: 8
+      low: 2
+      type: int
+    type:
+    - attention
+    - conv
+    - mlp
+    - transformer
+    - hybrid
+  seed: 42
 evaluator:
-  type: "sandbox"
-  quick_train_epochs: 5
-  use_lr_decay: true
   batch_size: 8
-
+  num_evals: 3
+  quick_train_epochs: 10
+  type: sandbox
+  use_lr_decay: true
+experiment:
+  name: controller_random
+  output_dir: results/phase2_controllers/random
+generator:
+  max_tokens: 4096
+  model: deepseek-chat
+  strategy: cot
+  temperature: 0.7
 reward:
-  type: "multi_objective"
+  alpha: 3.0
+  baseline: 2.5
+  label_smoothing: true
+  max_sharpened: 10.0
+  type: exponential
   weights:
     accuracy: 1.0
-    efficiency: 0.5
     compile_success: 2.0
-  label_smoothing: true
-
-experiment:
-  name: "controller_random"
-  output_dir: "results/phase2_controllers/random"
+    efficiency: 0.5

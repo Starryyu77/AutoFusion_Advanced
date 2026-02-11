@@ -1,34 +1,32 @@
-# Phase 2: CMA-ES Controller Configuration
-# Covariance Matrix Adaptation Evolution Strategy
-
 controller:
-  algorithm: "cmaes"
-  dim: 16                       # 搜索空间维度
-  population_size: null         # 自动计算 (4 + 3*log(dim))
-  sigma: 0.5                    # 初始步长
+  algorithm: cmaes
+  dim: 16
+  disable_early_stop: true
+  early_stop_patience: 50
   max_iterations: 100
-  early_stop_patience: 20
-
-generator:
-  strategy: "cot"
-  model: "deepseek-chat"
-  temperature: 0.7
-  max_tokens: 4096
-
+  population_size: null
+  sigma: 0.5
 evaluator:
-  type: "sandbox"
-  quick_train_epochs: 5
-  use_lr_decay: true
   batch_size: 8
-
+  num_evals: 3
+  quick_train_epochs: 10
+  type: sandbox
+  use_lr_decay: true
+experiment:
+  name: controller_cmaes
+  output_dir: results/phase2_controllers/cmaes
+generator:
+  max_tokens: 4096
+  model: deepseek-chat
+  strategy: cot
+  temperature: 0.7
 reward:
-  type: "multi_objective"
+  alpha: 3.0
+  baseline: 2.5
+  label_smoothing: true
+  max_sharpened: 10.0
+  type: exponential
   weights:
     accuracy: 1.0
-    efficiency: 0.5
     compile_success: 2.0
-  label_smoothing: true
-
-experiment:
-  name: "controller_cmaes"
-  output_dir: "results/phase2_controllers/cmaes"
+    efficiency: 0.5

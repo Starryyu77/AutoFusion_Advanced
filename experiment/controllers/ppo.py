@@ -28,8 +28,10 @@ class PolicyNetwork(nn.Module):
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        mean = self.fc3(x)
-        std = torch.exp(self.log_std)
+        # Fix: Clamp mean to [-1, 1] to keep actions in valid range
+        mean = torch.tanh(self.fc3(x))
+        # Clamp std to prevent extreme values
+        std = torch.exp(self.log_std).clamp(min=0.01, max=0.5)
         return mean, std
 
 
