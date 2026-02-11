@@ -19,9 +19,58 @@ from typing import Tuple, List, Dict, Any, Optional
 from pathlib import Path
 import torch
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data._utils.collate import default_collate
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def custom_collate_fn(batch):
+    """
+    Custom collate function that handles None values in batch.
+
+    PyTorch's default collate fails when batch contains None.
+    This function filters out None values and handles mixed types.
+    """
+    if not batch:
+        return {}
+
+    # Get keys from first item
+    keys = batch[0].keys()
+    collated = {}
+
+    for key in keys:
+        values = [item[key] for item in batch]
+
+        # Filter out None values
+        non_none_values = [v for v in values if v is not None]
+
+        if not non_none_values:
+            # All values are None
+            collated[key] = None
+        elif key == 'image':
+            # Handle images specially - stack tensors
+            if isinstance(non_none_values[0], torch.Tensor):
+                collated[key] = torch.stack(non_none_values)
+            else:
+                collated[key] = values  # Keep as list if not tensors
+        elif key == 'label':
+            # Stack labels into tensor
+            if isinstance(non_none_values[0], (int, float)):
+                collated[key] = torch.tensor(values)
+            else:
+                collated[key] = default_collate(non_none_values)
+        elif isinstance(non_none_values[0], (int, float, str)):
+            # Keep primitive types as list
+            collated[key] = values
+        else:
+            # Try default collate
+            try:
+                collated[key] = default_collate(non_none_values)
+            except:
+                collated[key] = values
+
+    return collated
 
 
 class BaseDataset(Dataset):
@@ -38,7 +87,7 @@ class BaseDataset(Dataset):
         item = self.data[idx]
 
         # Load image if path is provided
-        if 'image_path' in item and os.path.exists(item['image_path']):
+        if 'image_path' in item and item['image_path'] is not None and os.path.exists(item['image_path']):
             try:
                 from PIL import Image
                 image = Image.open(item['image_path']).convert('RGB')
@@ -128,13 +177,14 @@ class DatasetLoader:
         train_dataset = BaseDataset(train_data_fewshot)
         val_dataset = BaseDataset(val_data)
 
-        # Create dataloaders
+        # Create dataloaders with custom collate function
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=0,  # Use 0 to avoid multiprocessing issues
-            pin_memory=True if torch.cuda.is_available() else False
+            pin_memory=True if torch.cuda.is_available() else False,
+            collate_fn=custom_collate_fn
         )
 
         val_loader = DataLoader(
@@ -142,7 +192,8 @@ class DatasetLoader:
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=0,
-            pin_memory=True if torch.cuda.is_available() else False
+            pin_memory=True if torch.cuda.is_available() else False,
+            collate_fn=custom_collate_fn
         )
 
         return train_loader, val_loader
@@ -165,20 +216,44 @@ class DatasetLoader:
         Load MMMU dataset.
 
         MMMU: College-level multi-discipline multimodal understanding.
+        Loads all subjects and combines them.
         """
         try:
-            from datasets import load_dataset
+            from datasets import load_dataset, concatenate_datasets
 
             logger.info("Loading MMMU dataset from HuggingFace...")
 
-            # Load validation split (contains all data)
-            dataset = load_dataset('MMMU/MMMU', split='validation', cache_dir=str(self.dataset_dir))
+            # MMMU has multiple subjects (configs)
+            subjects = ['Accounting', 'Agriculture', 'Architecture_and_Engineering',
+                       'Art', 'Art_Theory', 'Basic_Medical_Science', 'Biology',
+                       'Chemistry', 'Clinical_Medicine', 'Computer_Science', 'Design',
+                       'Diagnostics_and_Laboratory_Medicine', 'Economics', 'Electronics',
+                       'Energy_and_Power', 'Finance', 'Geography', 'History',
+                       'Literature', 'Manage', 'Marketing', 'Materials', 'Math',
+                       'Mechanical_Engineering', 'Music', 'Pharmacy', 'Physics',
+                       'Psychology', 'Public_Health', 'Sociology']
+
+            # Load first subject
+            logger.info(f"Loading MMMU subject: {subjects[0]}")
+            combined_dataset = load_dataset('MMMU/MMMU', subjects[0], split='validation',
+                                           cache_dir=str(self.dataset_dir))
+
+            # Load remaining subjects and combine
+            for subject in subjects[1:5]:  # Load first 5 subjects for speed
+                logger.info(f"Loading MMMU subject: {subject}")
+                try:
+                    subject_dataset = load_dataset('MMMU/MMMU', subject, split='validation',
+                                                  cache_dir=str(self.dataset_dir))
+                    combined_dataset = concatenate_datasets([combined_dataset, subject_dataset])
+                except Exception as e:
+                    logger.warning(f"Failed to load {subject}: {e}")
+                    continue
 
             # Process into standard format
             train_data = []
             val_data = []
 
-            for item in dataset:
+            for item in combined_dataset:
                 processed = {
                     'image': item.get('image'),
                     'image_path': item.get('image_path'),
