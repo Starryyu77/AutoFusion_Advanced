@@ -1,0 +1,181 @@
+#!/bin/bash
+# Phase 2: Controller (RL Algorithm) Comparison
+# Fixed: Best Prompt from Phase 1, Variable: Controller Algorithm
+
+set -e
+
+echo "=========================================="
+echo "Phase 2: Controller Comparison"
+echo "=========================================="
+echo ""
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+RESULTS_DIR="$SCRIPT_DIR/results"
+LOGS_DIR="$SCRIPT_DIR/logs"
+
+mkdir -p "$RESULTS_DIR"
+mkdir -p "$LOGS_DIR"
+
+# Configuration
+CONTROLLERS=("ppo" "grpo" "gdpo" "evolution" "cmaes" "random")
+SEEDS=(42 123 456 789 1024)
+
+echo "Running experiments..."
+echo "Controllers: ${CONTROLLERS[@]}"
+echo "Seeds: ${SEEDS[@]}"
+echo ""
+
+# Function to run single experiment
+run_experiment() {
+    local controller=$1
+    local seed=$2
+    local gpu=$3
+
+    local config_file="$SCRIPT_DIR/configs/${controller}.yaml"
+    local output_dir="$RESULTS_DIR/${controller}_s${seed}"
+    local log_file="$LOGS_DIR/${controller}_s${seed}.log"
+
+    echo "[GPU $gpu] Starting $controller (seed=$seed)..."
+
+    CUDA_VISIBLE_DEVICES=$gpu python3 << PYTHON_SCRIPT
+import sys
+import os
+import yaml
+import torch
+import numpy as np
+from pathlib import Path
+
+sys.path.insert(0, "$PROJECT_ROOT")
+
+from experiment.factory import create_controller, create_generator, create_evaluator, create_reward
+
+def main():
+    # Load config
+    config_path = Path("$config_file")
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    # Set seed
+    seed = $seed
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+
+    # Create components
+    controller = create_controller('$controller', config['controller'])
+    generator = create_generator('cot', None, config['generator'])
+    evaluator = create_evaluator('sandbox', config['evaluator'])
+    reward_fn = create_reward(config['reward'])
+
+    # Output directory
+    output_dir = Path("$output_dir")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Search loop
+    max_iterations = config['controller']['max_iterations']
+    log_interval = 10
+
+    print(f"Starting {max_iterations} iterations...")
+
+    for iteration in range(max_iterations):
+        # Propose
+        proposal = controller.propose()
+        architecture = proposal['architecture']
+
+        # Generate
+        results = generator.generate(architecture, num_samples=1)
+        gen_result = results[0]
+
+        # Evaluate
+        if gen_result.success:
+            eval_result = evaluator.evaluate(gen_result.code)
+        else:
+            eval_result = type('obj', (object,), {
+                'accuracy': 0.0, 'efficiency': 0.0, 'compile_success': 0.0,
+                'to_dict': lambda: {'accuracy': 0.0, 'efficiency': 0.0, 'compile_success': 0.0}
+            })()
+
+        # Reward
+        reward_components = reward_fn.calculate(eval_result.to_dict())
+
+        # Update
+        controller.update(reward_components)
+        controller.record_iteration(architecture, reward_components)
+
+        # Log
+        if (iteration + 1) % log_interval == 0:
+            reward_scalar = reward_components.to_scalar(config['reward']['weights'])
+            print(f"Iter {iteration+1}/{max_iterations} | Reward: {reward_scalar:.4f}")
+
+        if controller.should_stop():
+            break
+
+    # Save results
+    checkpoint_path = output_dir / "checkpoint.pt"
+    controller.save_checkpoint(str(checkpoint_path))
+
+    import json
+    summary = {
+        'controller': '$controller',
+        'seed': seed,
+        'stats': controller.get_stats(),
+    }
+    with open(output_dir / "summary.json", 'w') as f:
+        json.dump(summary, f, indent=2, default=str)
+
+    print(f"Completed: $controller (seed={seed})")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+PYTHON_SCRIPT
+
+    echo "[GPU $gpu] Finished $controller (seed=$seed)"
+}
+
+# Parallel execution on 2 GPUs
+# GPU 2: ppo (5 seeds), grpo (5 seeds), evolution (5 seeds)
+# GPU 3: gdpo (5 seeds), cmaes (5 seeds), random (5 seeds)
+
+# GPU 2 tasks
+run_gpu2() {
+    for controller in ppo grpo evolution; do
+        for seed in ${SEEDS[@]}; do
+            run_experiment $controller $seed 2
+        done
+    done
+}
+
+# GPU 3 tasks
+run_gpu3() {
+    for controller in gdpo cmaes random; do
+        for seed in ${SEEDS[@]}; do
+            run_experiment $controller $seed 3
+        done
+    done
+}
+
+# Run in parallel
+echo "Launching parallel experiments..."
+run_gpu2 &
+PID_GPU2=$!
+run_gpu3 &
+PID_GPU3=$!
+
+echo "GPU2 PID: $PID_GPU2, GPU3 PID: $PID_GPU3"
+echo ""
+
+# Wait for completion
+wait $PID_GPU2 $PID_GPU3
+
+echo ""
+echo "=========================================="
+echo "Phase 2 Complete!"
+echo "=========================================="
+echo ""
+echo "Results saved to: $RESULTS_DIR"
+echo ""
+echo "To analyze results:"
+echo "  python3 $PROJECT_ROOT/scripts/analyze_controller_results.py --input $RESULTS_DIR"

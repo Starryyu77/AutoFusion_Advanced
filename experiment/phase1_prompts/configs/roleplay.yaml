@@ -1,0 +1,36 @@
+# Phase 1: RolePlay Prompt Strategy
+
+controller:
+  algorithm: "ppo"
+  use_critic: false
+  clip_range: 0.2
+  learning_rate: 3e-5
+  baseline_momentum: 0.9
+  max_iterations: 100
+  early_stop_patience: 20
+
+generator:
+  strategy: "roleplay"
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+  expert_type: "pytorch_expert"
+
+evaluator:
+  type: "sandbox"
+  quick_train_epochs: 5
+  use_lr_decay: true
+  batch_size: 8
+  learning_rate: 1e-3
+
+reward:
+  type: "multi_objective"
+  weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+  label_smoothing: true
+
+experiment:
+  name: "prompt_roleplay"
+  output_dir: "results/phase1_prompts/roleplay"

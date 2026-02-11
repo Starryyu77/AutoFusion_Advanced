@@ -1,0 +1,43 @@
+# Phase 2: PPO Controller Configuration
+# Critic-Free variant for Contextual Bandit
+
+controller:
+  algorithm: "ppo"
+  use_critic: false              # Contextual Bandit场景禁用Critic
+  clip_range: 0.2
+  learning_rate: 3e-5
+  baseline_momentum: 0.9
+  entropy_coef: 0.01
+  max_iterations: 100
+  early_stop_patience: 20
+  state_dim: 64
+  hidden_dim: 256
+  action_dim: 16
+  reward_weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+
+generator:
+  strategy: "cot"                # 使用Phase 1最佳策略
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+
+evaluator:
+  type: "sandbox"
+  quick_train_epochs: 5
+  use_lr_decay: true
+  batch_size: 8
+
+reward:
+  type: "multi_objective"
+  weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+  label_smoothing: true
+
+experiment:
+  name: "controller_ppo"
+  output_dir: "results/phase2_controllers/ppo"

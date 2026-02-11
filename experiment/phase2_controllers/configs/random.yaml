@@ -1,0 +1,49 @@
+# Phase 2: Random Controller Configuration
+# Random search baseline
+
+controller:
+  algorithm: "random"
+  seed: 42
+  max_iterations: 100
+  early_stop_patience: 20
+
+  search_space:
+    type: ['attention', 'conv', 'mlp', 'transformer', 'hybrid']
+    fusion_type: ['early', 'late', 'middle', 'hierarchical']
+    hidden_dim:
+      type: 'int'
+      low: 256
+      high: 1024
+    num_layers:
+      type: 'int'
+      low: 2
+      high: 8
+    dropout:
+      type: 'float'
+      low: 0.0
+      high: 0.5
+    activation: ['gelu', 'relu', 'silu']
+
+generator:
+  strategy: "cot"
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+
+evaluator:
+  type: "sandbox"
+  quick_train_epochs: 5
+  use_lr_decay: true
+  batch_size: 8
+
+reward:
+  type: "multi_objective"
+  weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+  label_smoothing: true
+
+experiment:
+  name: "controller_random"
+  output_dir: "results/phase2_controllers/random"

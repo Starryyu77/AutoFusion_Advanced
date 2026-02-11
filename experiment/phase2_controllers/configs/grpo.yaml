@@ -1,0 +1,45 @@
+# Phase 2: GRPO Controller Configuration
+# Group Relative Policy Optimization with Bootstrap variance
+
+controller:
+  algorithm: "grpo"
+  group_size: 8                 # 组内样本数
+  learning_rate: 1e-5
+  beta: 0.04                    # KL惩罚系数
+  clip_range: 0.2
+  entropy_coef: 0.01
+  max_iterations: 100
+  early_stop_patience: 20
+
+  # Bootstrap方差估计
+  use_bootstrap: true
+  n_bootstrap: 100
+  variance_clip: 5.0
+
+  state_dim: 64
+  hidden_dim: 256
+  action_dim: 16
+
+generator:
+  strategy: "cot"
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+
+evaluator:
+  type: "sandbox"
+  quick_train_epochs: 5
+  use_lr_decay: true
+  batch_size: 8
+
+reward:
+  type: "multi_objective"
+  weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+  label_smoothing: true
+
+experiment:
+  name: "controller_grpo"
+  output_dir: "results/phase2_controllers/grpo"

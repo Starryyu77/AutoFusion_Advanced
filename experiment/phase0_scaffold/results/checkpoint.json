@@ -1,0 +1,201 @@
+{
+  "iteration": 11,
+  "best_reward": 0.7,
+  "best_architecture": {
+    "type": "hybrid",
+    "fusion_type": "middle",
+    "hidden_dim": 440,
+    "num_layers": 3,
+    "dropout": 0.44755467772483826,
+    "activation": "relu"
+  },
+  "history": [
+    {
+      "iteration": 1,
+      "architecture": {
+        "type": "hybrid",
+        "fusion_type": "middle",
+        "hidden_dim": 440,
+        "num_layers": 3,
+        "dropout": 0.44755467772483826,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 2,
+      "architecture": {
+        "type": "hybrid",
+        "fusion_type": "hierarchical",
+        "hidden_dim": 445,
+        "num_layers": 12,
+        "dropout": 0.03101951628923416,
+        "activation": "gelu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 3,
+      "architecture": {
+        "type": "transformer",
+        "fusion_type": "late",
+        "hidden_dim": 1287,
+        "num_layers": 10,
+        "dropout": 0.07459552586078644,
+        "activation": "gelu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 4,
+      "architecture": {
+        "type": "hybrid",
+        "fusion_type": "late",
+        "hidden_dim": 1066,
+        "num_layers": 12,
+        "dropout": 0.7900547385215759,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 5,
+      "architecture": {
+        "type": "mlp",
+        "fusion_type": "early",
+        "hidden_dim": 957,
+        "num_layers": 12,
+        "dropout": 0.24775585532188416,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 6,
+      "architecture": {
+        "type": "transformer",
+        "fusion_type": "late",
+        "hidden_dim": 598,
+        "num_layers": 12,
+        "dropout": 0.07987090945243835,
+        "activation": "gelu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 7,
+      "architecture": {
+        "type": "hybrid",
+        "fusion_type": "middle",
+        "hidden_dim": 1401,
+        "num_layers": 14,
+        "dropout": 0.3483407199382782,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 8,
+      "architecture": {
+        "type": "attention",
+        "fusion_type": "late",
+        "hidden_dim": 2043,
+        "num_layers": 7,
+        "dropout": 0.09130541980266571,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 9,
+      "architecture": {
+        "type": "mlp",
+        "fusion_type": "middle",
+        "hidden_dim": 570,
+        "num_layers": 12,
+        "dropout": 1.6048533916473389,
+        "activation": "gelu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 10,
+      "architecture": {
+        "type": "mlp",
+        "fusion_type": "hierarchical",
+        "hidden_dim": 880,
+        "num_layers": 3,
+        "dropout": 0.6580172181129456,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    },
+    {
+      "iteration": 11,
+      "architecture": {
+        "type": "attention",
+        "fusion_type": "late",
+        "hidden_dim": 1218,
+        "num_layers": 10,
+        "dropout": 0.22828996181488037,
+        "activation": "relu"
+      },
+      "reward": {
+        "accuracy": 0.0,
+        "efficiency": 1.0,
+        "compile_success": 0.1,
+        "complexity": 1.0
+      }
+    }
+  ]
+}

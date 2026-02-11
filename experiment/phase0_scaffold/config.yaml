@@ -1,0 +1,60 @@
+# Phase 0 Scaffold Configuration
+# PPO + CoT end-to-end validation
+
+# ===== Controller: PPO (Critic-Free for Contextual Bandit) =====
+controller:
+  algorithm: "ppo"
+  use_critic: false              # Contextual Bandit场景禁用Critic
+  clip_range: 0.2
+  learning_rate: 3e-5
+  baseline_momentum: 0.9
+  entropy_coef: 0.01
+  max_iterations: 50             # 骨架验证: 只跑50轮
+  early_stop_patience: 10
+  state_dim: 64
+  hidden_dim: 256
+  action_dim: 16
+
+# ===== Generator: CoT (Chain-of-Thought) =====
+generator:
+  strategy: "cot"
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+  top_p: 0.95
+  api_key: "${DEEPSEEK_API_KEY}"
+  base_url: "https://api.deepseek.com/v1"
+
+# ===== Evaluator: Surgical Sandbox =====
+evaluator:
+  type: "sandbox"
+  quick_train_epochs: 5          # 快速评估
+  use_lr_decay: true             # Cosine Annealing
+  batch_size: 8
+  learning_rate: 1e-3
+  device: "cuda"
+  num_samples: 100
+  vision_dim: 768
+  language_dim: 768
+  num_classes: 10
+  use_cache: true
+
+# ===== Reward: Multi-Objective =====
+reward:
+  type: "multi_objective"
+  weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+    complexity: 0.0
+  max_flops: 1e9
+  max_params: 1e8
+  use_log_scale: true
+  label_smoothing: true          # r_valid平滑化
+
+# ===== Experiment Settings =====
+experiment:
+  seed: 42
+  output_dir: "results/phase0_scaffold"
+  log_interval: 5
+  save_checkpoints: true
