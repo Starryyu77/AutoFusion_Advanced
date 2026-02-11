@@ -295,12 +295,23 @@ class DatasetLoader:
             val_data = []
 
             for item in dataset:
+                # Handle label - VSR uses boolean True/False
+                raw_label = item.get('label', False)
+                # Convert to int (0 or 1)
+                if isinstance(raw_label, bool):
+                    label = 1 if raw_label else 0
+                elif isinstance(raw_label, (int, float)):
+                    label = int(raw_label)
+                else:
+                    # Handle numpy types or other
+                    label = 1 if raw_label else 0
+
                 processed = {
                     'image': item.get('image'),
                     'image_path': item.get('image_path'),
                     'caption': item.get('caption'),
                     'relation': item.get('relation'),
-                    'label': 1 if item.get('label', False) else 0,  # Binary: 1=correct, 0=incorrect
+                    'label': label,  # Binary: 1=correct, 0=incorrect
                     'uuid': item.get('uuid')
                 }
 

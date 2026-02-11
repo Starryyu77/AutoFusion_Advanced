@@ -355,10 +355,29 @@ class RealDataFewShotEvaluator(BaseEvaluator):
                         # List of labels
                         labels_list = batch['label']
                         batch_size_actual = len(labels_list)
-                        # Convert to tensor (handle both int and str labels)
+                        # Convert to tensor (handle int, float, bool, str labels)
                         try:
-                            labels = torch.tensor([int(l) if isinstance(l, (int, float, str)) and str(l).isdigit() else 0 for l in labels_list]).to(self.device)
-                        except:
+                            def convert_label(l):
+                                if isinstance(l, bool):
+                                    return 1 if l else 0
+                                elif isinstance(l, (int, float)):
+                                    return int(l)
+                                elif isinstance(l, str):
+                                    # Handle 'True'/'False' strings
+                                    if l.lower() == 'true':
+                                        return 1
+                                    elif l.lower() == 'false':
+                                        return 0
+                                    elif l.isdigit():
+                                        return int(l)
+                                    else:
+                                        return 0
+                                else:
+                                    return 1 if l else 0
+
+                            labels = torch.tensor([convert_label(l) for l in labels_list]).to(self.device)
+                        except Exception as e:
+                            logger.warning(f"Label conversion failed: {e}, using random labels")
                             labels = torch.randint(0, 10, (batch_size_actual,)).to(self.device)
                 else:
                     batch_size_actual = self.batch_size
@@ -425,8 +444,25 @@ class RealDataFewShotEvaluator(BaseEvaluator):
                         labels_list = batch['label']
                         batch_size_actual = len(labels_list)
                         try:
-                            labels = torch.tensor([int(l) if isinstance(l, (int, float, str)) and str(l).isdigit() else 0 for l in labels_list]).to(self.device)
-                        except:
+                            def convert_val_label(l):
+                                if isinstance(l, bool):
+                                    return 1 if l else 0
+                                elif isinstance(l, (int, float)):
+                                    return int(l)
+                                elif isinstance(l, str):
+                                    if l.lower() == 'true':
+                                        return 1
+                                    elif l.lower() == 'false':
+                                        return 0
+                                    elif l.isdigit():
+                                        return int(l)
+                                    else:
+                                        return 0
+                                return 1 if l else 0
+
+                            labels = torch.tensor([convert_val_label(l) for l in labels_list]).to(self.device)
+                        except Exception as e:
+                            logger.warning(f"Val label conversion: {e}")
                             labels = torch.randint(0, 10, (batch_size_actual,)).to(self.device)
                 else:
                     batch_size_actual = self.batch_size
