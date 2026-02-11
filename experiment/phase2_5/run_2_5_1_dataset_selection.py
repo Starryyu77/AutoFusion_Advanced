@@ -51,11 +51,13 @@ class FusionModule(nn.Module):
         self.fusion = nn.Sequential(nn.ReLU(), nn.Conv1d(hidden_dim, hidden_dim, 1))
 
     def forward(self, v, l):
+        import torch
         v = self.vision_conv(v.unsqueeze(-1)).squeeze(-1)
         l = self.lang_conv(l.unsqueeze(-1)).squeeze(-1)
         return self.fusion((v + l).unsqueeze(-1)).squeeze(-1)
 ''',
     'transformer_fusion': '''
+import torch
 import torch.nn as nn
 
 class FusionModule(nn.Module):
@@ -66,10 +68,12 @@ class FusionModule(nn.Module):
         self.transformer = nn.TransformerEncoderLayer(hidden_dim, 8, batch_first=True)
 
     def forward(self, v, l):
+        import torch
         v, l = self.v_proj(v).unsqueeze(1), self.l_proj(l).unsqueeze(1)
         return self.transformer(torch.cat([v, l], 1)).mean(1)
 ''',
     'mlp_simple': '''
+import torch
 import torch.nn as nn
 
 class FusionModule(nn.Module):
@@ -80,6 +84,7 @@ class FusionModule(nn.Module):
         self.fusion = nn.Sequential(nn.Linear(hidden_dim*2, hidden_dim), nn.LayerNorm(hidden_dim))
 
     def forward(self, v, l):
+        import torch
         return self.fusion(torch.cat([self.v(v), self.l(l)], -1))
 '''
 }
