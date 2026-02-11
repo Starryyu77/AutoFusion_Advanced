@@ -1,0 +1,64 @@
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load CLIP: No module named 'clip', using mock
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load CLIP: No module named 'clip', using mock
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load CLIP: No module named 'clip', using mock
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load CLIP: No module named 'clip', using mock
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+Failed to load AI2D: module 'PIL.Image' has no attribute 'ExifTags'
+============================================================
+Phase 2.5.2: Training Depth Calibration
+============================================================
+Dataset: ai2d
+Depths: [1, 3, 5, 10]
+
+
+Testing 1 epochs...
+----------------------------------------
+  attention_simple: Acc=0.0500, Time=6.9s
+  conv_fusion: Acc=0.1500, Time=3.2s
+  transformer_fusion: Acc=0.2500, Time=2.6s
+
+Testing 3 epochs...
+----------------------------------------
+  attention_simple: Acc=0.1500, Time=2.7s
+  conv_fusion: Acc=0.3500, Time=2.6s
+  transformer_fusion: Acc=0.2500, Time=2.7s
+
+Testing 5 epochs...
+----------------------------------------
+  attention_simple: Acc=0.3000, Time=2.9s
+  conv_fusion: Acc=0.1000, Time=2.8s
+  transformer_fusion: Acc=0.0000, Time=3.0s
+
+Testing 10 epochs...
+----------------------------------------
+  attention_simple: Acc=0.2500, Time=3.2s
+  conv_fusion: Acc=0.2500, Time=3.1s
+  transformer_fusion: Acc=0.1500, Time=3.3s
+
+============================================================
+Summary: Depth vs Performance
+============================================================
+Epochs     Mean Acc     Std        Time (s)  
+------------------------------------------------------------
+1          0.1500       0.0816     4.2       
+3          0.2500       0.0816     2.7       
+5          0.1333       0.1247     2.9       
+10         0.2167       0.0471     3.2       
+
+============================================================
+RECOMMENDATION: 3 epochs
+  Mean Accuracy: 0.2500
+  Time per eval: 2.7s
+============================================================
+
+Results saved to: /usr1/home/s125mdg43_10/AutoFusion_Advanced/experiment/phase2_5/results/2_5_2_training_depth

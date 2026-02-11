@@ -1,0 +1,13 @@
+Phase 2.5.2: Training Depth Calibration - Summary
+============================================================
+
+Dataset: ai2d
+Tested depths: [1, 3, 5, 10]
+
+Results:
+  1 epochs: acc=0.1500, time=4.2s
+  3 epochs: acc=0.2500, time=2.7s
+  5 epochs: acc=0.1333, time=2.9s
+  10 epochs: acc=0.2167, time=3.2s
+
+Recommended: 3 epochs
