@@ -90,7 +90,7 @@ class FusionModule(nn.Module):
 }
 
 
-def run_experiment(datasets=['vsr', 'ai2d', 'mathvista'], num_shots=16, train_epochs=5, data_dir='./data'):
+def run_experiment(datasets=['mmmu', 'vsr', 'ai2d', 'mathvista'], num_shots=16, train_epochs=5, data_dir='./data'):
     """Run dataset selection experiment."""
     print("=" * 60)
     print("Phase 2.5.1: Dataset Selection Experiment")
