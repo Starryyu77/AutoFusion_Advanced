@@ -42,15 +42,15 @@ class GDPOController(BaseController):
 
         # GDPO hyperparameters
         self.group_size = config.get('group_size', 8)
-        self.learning_rate = config.get('learning_rate', 1e-5)
+        self.learning_rate = float(config.get('learning_rate', 1e-5))
         self.beta = config.get('beta', 0.04)
         self.clip_range = config.get('clip_range', 0.2)
         self.entropy_coef = config.get('entropy_coef', 0.01)
         self.n_epochs = config.get('n_epochs', 2)
 
         # Variance explosion protection
-        self.advantage_clip = config.get('advantage_clip', 3.0)
-        self.min_std = config.get('min_std', 1e-4)
+        self.advantage_clip = float(config.get('advantage_clip', 3.0))
+        self.min_std = float(config.get('min_std', 1e-4))
         self.use_robust_norm = config.get('use_robust_norm', False)
         self.auto_weight_scaling = config.get('auto_weight_scaling', True)
 
@@ -173,7 +173,7 @@ class GDPOController(BaseController):
 
     def _compute_decoupled_advantages(self, rewards: List[Dict[str, float]]) -> torch.Tensor:
         """
-        解耦归一化优势计算
+        解耦归一化优势计算 - Fix 4: 惩罚项解耦
 
         A_i = sum_k w_k * normalize(r_k_i)
 
@@ -181,6 +181,9 @@ class GDPOController(BaseController):
         - 标准: (r - mean) / (std + eps)
         - 保护: 当 std < min_std 时不除以 std
         - 稳健: 分位数归一化
+
+        Fix 4: 编译失败(compile_success=0)的架构，该组件优势=0
+        让 RL 明白"报错"只是"没得分"，而不是"世界末日"
         """
         advantages = torch.zeros(self.group_size, device=self.device)
 
@@ -189,6 +192,36 @@ class GDPOController(BaseController):
                 continue
 
             values = torch.tensor([r[key] for r in rewards], dtype=torch.float32, device=self.device)
+
+            # Fix 4: 编译失败解耦处理
+            if key == 'compile_success':
+                # 检查是否有编译失败的情况 (compile_success = 0)
+                compile_failed = (values < 0.1).float()  # 0.0 表示失败
+
+                if compile_failed.sum() > 0:
+                    # 编译失败的样本，该组件优势设为 0 (不惩罚，只是没得分)
+                    # 其他组件正常计算
+                    normalized = torch.zeros_like(values)
+
+                    # 只对编译成功的样本进行归一化
+                    success_mask = (values >= 0.1)
+                    if success_mask.sum() > 0:
+                        success_values = values[success_mask]
+                        mean = success_values.mean()
+                        std = success_values.std()
+
+                        if std >= self.min_std:
+                            normalized[success_mask] = (success_values - mean) / (std + 1e-8)
+                        else:
+                            normalized[success_mask] = success_values - mean
+
+                        normalized = torch.clamp(normalized, -self.advantage_clip, self.advantage_clip)
+
+                    weight = self.reward_weights.get(key, 1.0)
+                    advantages += weight * normalized
+                    continue
+
+            # 标准处理流程
             mean = values.mean()
             std = values.std()
 

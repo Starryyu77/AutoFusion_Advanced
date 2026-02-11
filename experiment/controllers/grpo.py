@@ -35,7 +35,7 @@ class GRPOController(BaseController):
 
         # GRPO hyperparameters
         self.group_size = config.get('group_size', 8)
-        self.learning_rate = config.get('learning_rate', 1e-5)
+        self.learning_rate = float(config.get('learning_rate', 1e-5))
         self.beta = config.get('beta', 0.04)  # KL penalty coefficient
         self.clip_range = config.get('clip_range', 0.2)
         self.entropy_coef = config.get('entropy_coef', 0.01)
@@ -44,7 +44,7 @@ class GRPOController(BaseController):
         # Bootstrap variance estimation
         self.use_bootstrap = config.get('use_bootstrap', True)
         self.n_bootstrap = config.get('n_bootstrap', 100)
-        self.variance_clip = config.get('variance_clip', 5.0)  # Upper bound for std
+        self.variance_clip = float(config.get('variance_clip', 5.0))  # Upper bound for std
 
         # State dimensions
         self.state_dim = config.get('state_dim', 64)
