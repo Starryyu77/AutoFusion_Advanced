@@ -14,7 +14,7 @@ import os
 import json
 import hashlib
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple, List, Union
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
@@ -184,7 +184,7 @@ class DeepSeekClient:
         except Exception as e:
             print(f"Warning: Failed to log API call: {e}")
 
-    def _call_api_with_retry(self, prompt: str) -> tuple[str, Dict[str, Any]]:
+    def _call_api_with_retry(self, prompt: str) -> Tuple[str, Dict[str, Any]]:
         """
         Call DeepSeek API with exponential backoff retry.
 

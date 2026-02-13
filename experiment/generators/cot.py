@@ -123,8 +123,16 @@ class FusionModule(nn.Module):
 
     def _call_llm(self, prompt: str) -> str:
         """调用LLM API"""
-        # 这里应该调用实际的LLM API
-        # 简化版本，实际使用时需要接入DeepSeek/OpenAI等
+        # 如果传入了 llm_client (DeepSeekClient)，使用它
+        if hasattr(self, 'llm') and self.llm is not None:
+            try:
+                # 使用传入的 llm_client 生成
+                code = self.llm.generate(prompt, architecture_hash='')
+                return code
+            except Exception as e:
+                print(f"LLM client failed: {e}, falling back to direct API call")
+
+        # 备用：直接调用 OpenAI API
         try:
             import openai
             client = openai.OpenAI(
