@@ -1,0 +1,104 @@
+{
+  "experiment_info": {
+    "name": "Phase 1: Prompt Strategy Comparison",
+    "date": "2026-02-13",
+    "location": "NTU GPU43 Server",
+    "status": "completed"
+  },
+  "configuration": {
+    "evaluator": "RealDataFewShotEvaluator",
+    "controller": "EvolutionController",
+    "dataset": "ai2d",
+    "train_epochs": 3,
+    "num_shots": 16,
+    "batch_size": 4,
+    "backbone": "clip-vit-l-14",
+    "iterations_per_strategy": 20,
+    "llm_model": "deepseek-chat"
+  },
+  "results": {
+    "CoT": {
+      "best_reward": 0.873,
+      "validity_rate": 1.0,
+      "convergence_iteration": 4,
+      "avg_generation_time": 23.5,
+      "total_time": 555.5,
+      "final_accuracy": 0.35,
+      "status": "success"
+    },
+    "FewShot": {
+      "best_reward": 0.873,
+      "validity_rate": 1.0,
+      "convergence_iteration": 6,
+      "avg_generation_time": 15.5,
+      "total_time": 391.3,
+      "final_accuracy": 0.35,
+      "status": "success"
+    },
+    "Critic": {
+      "best_reward": 0.819,
+      "validity_rate": 1.0,
+      "convergence_iteration": 2,
+      "avg_generation_time": 42.5,
+      "total_time": 924.2,
+      "final_accuracy": 0.30,
+      "status": "success"
+    },
+    "Shape": {
+      "best_reward": 0.684,
+      "validity_rate": 1.0,
+      "convergence_iteration": 7,
+      "avg_generation_time": 31.1,
+      "total_time": 697.7,
+      "final_accuracy": 0.20,
+      "status": "success"
+    },
+    "RolePlay": {
+      "best_reward": 0.0,
+      "validity_rate": 0.0,
+      "status": "failed",
+      "failure_reason": "Code compatibility issues with evaluator interface"
+    }
+  },
+  "rankings": {
+    "by_best_reward": [
+      {"rank": 1, "strategy": "CoT", "value": 0.873},
+      {"rank": 1, "strategy": "FewShot", "value": 0.873},
+      {"rank": 3, "strategy": "Critic", "value": 0.819},
+      {"rank": 4, "strategy": "Shape", "value": 0.684},
+      {"rank": 5, "strategy": "RolePlay", "value": 0.0}
+    ],
+    "by_convergence_speed": [
+      {"rank": 1, "strategy": "Critic", "iteration": 2},
+      {"rank": 2, "strategy": "CoT", "iteration": 4},
+      {"rank": 3, "strategy": "FewShot", "iteration": 6},
+      {"rank": 4, "strategy": "Shape", "iteration": 7},
+      {"rank": 5, "strategy": "RolePlay", "iteration": null}
+    ],
+    "by_generation_time": [
+      {"rank": 1, "strategy": "FewShot", "time": 15.5},
+      {"rank": 2, "strategy": "CoT", "time": 23.5},
+      {"rank": 3, "strategy": "Shape", "time": 31.1},
+      {"rank": 4, "strategy": "Critic", "time": 42.5}
+    ]
+  },
+  "winner": {
+    "strategy": "FewShot",
+    "reason": "Highest reward (tied with CoT), fastest generation time, best time-to-reward ratio"
+  },
+  "recommendations": {
+    "phase3_generator": "FewShotGenerator",
+    "backup_generator": "CriticGenerator",
+    "avoid": ["ShapeConstraintGenerator", "RolePlayGenerator"]
+  },
+  "cost_analysis": {
+    "total_api_calls": 80,
+    "estimated_cost_yuan": 130,
+    "cost_per_strategy": {
+      "CoT": 30,
+      "FewShot": 25,
+      "Critic": 40,
+      "Shape": 35
+    }
+  }
+}
