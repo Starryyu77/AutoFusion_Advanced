@@ -65,6 +65,8 @@ GENERATOR_CONFIG = {
     'temperature': 0.7,
     'max_tokens': 4096,
     'top_p': 0.95,
+    'api_key': os.environ.get('DEEPSEEK_API_KEY', ''),
+    'base_url': 'https://api.deepseek.com/v1',
 }
 
 
