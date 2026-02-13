@@ -27,7 +27,7 @@ experiment/
 │   ├── run_2_5_2_training_depth.py
 │   ├── run_2_5_3_architecture_fairness.py
 │   └── results/
-├── phase1_prompts/       # Prompt对比实验 (⏳ 待运行)
+├── phase1_prompts/       # Prompt对比实验 (✅ 完成)
 └── phase3_ablation/      # 架构发现 (⏳ 规划中)
 
 docs/
@@ -47,8 +47,34 @@ docs/
 | 0/0.5 | API验证 | ✅ | Mock ≈ Real (τ验证通过) |
 | 2.1 | Controller对比 | ✅ | Evolution(9.8) > PPO(8.68) > GRPO(5.69) > GDPO(4.69) |
 | **2.5** | **评估器验证** | **✅** | **AI2D + 3 epochs + EXCELLENT公平性** |
-| 1 | Prompt对比 | ⏳ | 使用验证后的评估器 |
+| 1 | Prompt对比 | ✅ | **FewShot (0.873)** > CoT (0.873) > Critic (0.819) |
 | 3 | 架构发现 | 📋 | 使用验证后的评估器 |
+
+---
+
+## ✅ Phase 1: Prompt策略对比完成
+
+### 实验结果
+
+| 排名 | 策略 | Best Reward | Validity Rate | Convergence | 状态 |
+|------|------|-------------|---------------|-------------|------|
+| 🥇 | **FewShot** | **0.873** | 100% | Iter 6 | ✅ 成功 |
+| 🥇 | **CoT** | **0.873** | 100% | Iter 4 | ✅ 成功 |
+| 🥉 | **Critic** | **0.819** | 100% | Iter 2 | ✅ 成功 |
+| 4 | **Shape** | **0.684** | 100% | Iter 7 | ✅ 成功 |
+| 5 | **RolePlay** | 0.000 | 0% | - | ❌ 失败 |
+
+### 关键发现
+
+- **Winner**: FewShot (最高奖励 + 最快生成时间 15.5s)
+- **所有成功策略**: 100% 代码有效性
+- **Critic**: 最快收敛 (Iter 2)
+- **RolePlay**: 代码与评估器接口不兼容
+
+### 实验报告
+
+- [PHASE1_REPORT.md](docs/experiments/PHASE1_REPORT.md) - 完整实验报告
+- [PHASE1_RESULTS_SUMMARY.json](docs/experiments/PHASE1_RESULTS_SUMMARY.json) - 结构化结果
 
 ---
 
@@ -93,6 +119,20 @@ pip install torch torchvision transformers datasets pillow numpy pandas
 # 验证环境
 cd experiment/phase0_validation
 python run_val.py
+```
+
+### 运行 Phase 1 Prompt对比实验
+
+```bash
+cd experiment/phase1_prompts
+
+# 运行完整对比实验 (所有5个策略)
+python run_phase1.py --run-name phase1_full --iterations 20 --gpu 2
+
+# 运行单个策略
+python run_phase1.py --strategy FewShot --iterations 20 --gpu 2
+python run_phase1.py --strategy CoT --iterations 20 --gpu 2
+python run_phase1.py --strategy Critic --iterations 20 --gpu 2
 ```
 
 ### 运行 Phase 2.5 验证实验
@@ -145,5 +185,5 @@ https://github.com/Starryyu77/AutoFusion_Advanced
 
 ---
 
-*Last Updated: 2026-02-11*
-*Status: Phase 2.5 Complete ✅, Phase 1 Ready ⏳*
+*Last Updated: 2026-02-13*
+*Status: Phase 1 & 2.5 Complete ✅, Phase 3 Ready ⏳*
