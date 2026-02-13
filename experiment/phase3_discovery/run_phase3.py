@@ -69,8 +69,8 @@ PHASE3_CONFIG = {
 
 # Extended Search Space for Architecture Discovery
 EXTENDED_SEARCH_SPACE = {
-    # Fusion Types
-    'fusion_type': ['attention', 'bilinear', 'mlp', 'transformer', 'gated', 'cross_modal', 'hybrid'],
+    # Fusion Types (use 'type' to match controller expectation)
+    'type': ['attention', 'bilinear', 'mlp', 'transformer', 'gated', 'cross_modal', 'hybrid'],
 
     # Architecture Components
     'num_fusion_layers': {'type': 'int', 'low': 1, 'high': 6},
