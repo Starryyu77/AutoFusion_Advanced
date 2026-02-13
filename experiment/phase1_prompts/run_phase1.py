@@ -39,6 +39,7 @@ from generators.shape import ShapeConstraintGenerator
 from generators.roleplay import RolePlayGenerator
 from controllers.evolution import EvolutionController
 from evaluators.real_data_evaluator import RealDataFewShotEvaluator
+from base.reward import RewardComponents
 
 
 # 统一配置
@@ -115,8 +116,9 @@ def run_single_strategy(
     for iteration in range(num_iterations):
         iter_start = time.time()
 
-        # 1. Controller samples/generates architecture description
-        arch_desc = controller.sample_architecture()
+        # 1. Controller proposes architecture description
+        proposal = controller.propose()
+        arch_desc = proposal['architecture']
 
         # 2. Generator generates code
         gen_start = time.time()
@@ -151,7 +153,13 @@ def run_single_strategy(
 
         # 4. Controller updates
         try:
-            controller.update(arch_desc, reward)
+            # Create RewardComponents from evaluation result
+            reward_components = RewardComponents(
+                accuracy=eval_result.accuracy if eval_result else 0.0,
+                efficiency=eval_result.efficiency if eval_result else 0.0,
+                compile_success=eval_result.compile_success if eval_result else 0.0,
+            )
+            controller.update(reward_components)
         except Exception as e:
             print(f"  Controller update error: {e}")
 
