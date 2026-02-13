@@ -2,7 +2,7 @@
 
 **Version**: 4.0
 **Date**: 2026-02-11
-**Status**: 待确认
+**Status**: Phase 1 完成 ✅
 
 ---
 
@@ -27,9 +27,10 @@ Phase 0: 基础设施验证 (已完成 ✅)
   ├─ 0.0: API 连接验证
   └─ 0.5: Mock vs Real API 对比
 
-Phase 1: Prompt 策略对比 (待运行 ⏳)
+Phase 1: Prompt 策略对比 (已完成 ✅)
   ├─ Generator: Real API (DeepSeek-V3)
-  └─ Evaluator: 使用 Phase 2.5 验证后的配置
+  ├─ Evaluator: 使用 Phase 2.5 验证后的配置
+  └─ Winner: FewShot (Best Reward 0.873)
 
 Phase 2: Controller 对比 + 评估器校准
   ├─ 2.1: Controller 算法对比 (Mock) ✅
