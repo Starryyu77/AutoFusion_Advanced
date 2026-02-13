@@ -21,8 +21,12 @@ from datetime import datetime
 from typing import Dict, List, Any
 
 # 添加项目路径
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / 'experiment'))
+SCRIPT_DIR = Path(__file__).parent.resolve()
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
+EXPERIMENT_DIR = SCRIPT_DIR.parent
+
+sys.path.insert(0, str(EXPERIMENT_DIR))
+sys.path.insert(0, str(PROJECT_ROOT))
 
 import numpy as np
 
@@ -44,7 +48,7 @@ VERIFIED_EVALUATOR_CONFIG = {
     'num_shots': 16,
     'batch_size': 4,
     'backbone': 'clip-vit-l-14',
-    'data_dir': str(PROJECT_ROOT / 'data'),
+    'data_dir': str(PROJECT_ROOT / 'data' / 'ai2d'),
     'device': 'cuda' if os.system('nvidia-smi > /dev/null 2>&1') == 0 else 'cpu',
 }
 
