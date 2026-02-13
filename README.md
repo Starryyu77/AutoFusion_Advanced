@@ -28,10 +28,12 @@ experiment/
 │   ├── run_2_5_3_architecture_fairness.py
 │   └── results/
 ├── phase1_prompts/       # Prompt对比实验 (✅ 完成)
-└── phase3_ablation/      # 架构发现 (⏳ 规划中)
+└── phase3_discovery/      # 架构发现 (✅ 框架完成，⏳ 待运行)
 
 docs/
 ├── experiments/          # 实验报告
+│   ├── PHASE1_REPORT.md       # Phase 1完整报告
+│   ├── PHASE1_RESULTS_SUMMARY.json  # Phase 1结果
 │   ├── PHASE_2_5_1_REPORT.md  # 数据集选择
 │   ├── PHASE_2_5_2_REPORT.md  # 训练深度校准
 │   └── PHASE_2_5_3_REPORT.md  # 架构公平性
@@ -48,7 +50,7 @@ docs/
 | 2.1 | Controller对比 | ✅ | Evolution(9.8) > PPO(8.68) > GRPO(5.69) > GDPO(4.69) |
 | **2.5** | **评估器验证** | **✅** | **AI2D + 3 epochs + EXCELLENT公平性** |
 | 1 | Prompt对比 | ✅ | **FewShot (0.873)** > CoT (0.873) > Critic (0.819) |
-| 3 | 架构发现 | 📋 | 使用验证后的评估器 |
+| 3 | 架构发现 | ✅ 框架完成 | Evolution + FewShot + RealDataFewShot |
 
 ---
 
@@ -133,6 +135,21 @@ python run_phase1.py --run-name phase1_full --iterations 20 --gpu 2
 python run_phase1.py --strategy FewShot --iterations 20 --gpu 2
 python run_phase1.py --strategy CoT --iterations 20 --gpu 2
 python run_phase1.py --strategy Critic --iterations 20 --gpu 2
+```
+
+### 运行 Phase 3 架构发现实验
+
+```bash
+cd experiment/phase3_discovery
+
+# 快速测试 (10 iterations)
+python run_phase3.py --run-name test_run --iterations 10
+
+# 标准架构发现 (100 iterations, ~8-10小时)
+python run_phase3.py --run-name discovery_v1 --iterations 100 --gpu 2
+
+# 在服务器上运行
+bash run_on_server.sh
 ```
 
 ### 运行 Phase 2.5 验证实验
