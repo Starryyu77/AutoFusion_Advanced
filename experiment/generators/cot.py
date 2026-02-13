@@ -122,7 +122,7 @@ class FusionModule(nn.Module):
         return results
 
     def _call_llm(self, prompt: str) -> str:
-        """调用LLM API"""
+        """调用LLM API - 强制使用真实API，失败时抛出异常"""
         # 如果传入了 llm_client (DeepSeekClient)，使用它
         if hasattr(self, 'llm') and self.llm is not None:
             try:
@@ -130,7 +130,8 @@ class FusionModule(nn.Module):
                 code = self.llm.generate(prompt, architecture_hash='')
                 return code
             except Exception as e:
-                print(f"LLM client failed: {e}, falling back to direct API call")
+                print(f"LLM client failed: {e}")
+                raise RuntimeError(f"DeepSeek API call failed: {e}") from e
 
         # 备用：直接调用 OpenAI API
         try:
@@ -148,9 +149,9 @@ class FusionModule(nn.Module):
             )
             return response.choices[0].message.content
         except Exception as e:
-            # 如果API调用失败，返回mock代码
-            print(f"LLM API call failed: {e}, using mock generation")
-            return self._mock_generate({})
+            # API调用失败时抛出异常，不使用mock
+            print(f"LLM API call failed: {e}")
+            raise RuntimeError(f"DeepSeek API call failed: {e}") from e
 
     def _mock_generate(self, architecture_desc: Dict[str, Any]) -> str:
         """模拟代码生成 (用于测试)"""

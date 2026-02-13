@@ -150,8 +150,8 @@ class FusionModule(nn.Module):
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"LLM API call failed: {e}, using mock generation")
-            return self._mock_generate({})
+            print(f"LLM API call failed: {e}")
+            raise RuntimeError(f"DeepSeek API call failed: {e}") from e
 
     def _mock_generate(self, architecture_desc: Dict[str, Any]) -> str:
         """模拟代码生成"""
