@@ -1,0 +1,235 @@
+# ExpV2 评估配置文件
+
+# 实验设置
+experiment:
+  name: "expv2_nas_vs_human"
+  description: "NAS discovered architectures vs human-designed baselines"
+  version: "1.0"
+
+# 数据集配置
+datasets:
+  ai2d:
+    name: "AI2D"
+    task: "diagram_understanding"
+    num_classes: 4
+    train_samples: 2400
+    val_samples: 300
+    test_samples: 300
+
+  mmmu:
+    name: "MMMU"
+    task: "multidisciplinary_reasoning"
+    num_classes: 4
+    train_samples: 9200
+    val_samples: 1150
+    test_samples: 1150
+
+  vsr:
+    name: "VSR"
+    task: "spatial_reasoning"
+    num_classes: 2
+    train_samples: 8000
+    val_samples: 1000
+    test_samples: 1000
+
+  mathvista:
+    name: "MathVista"
+    task: "mathematical_reasoning"
+    num_classes: 5
+    train_samples: 4800
+    val_samples: 600
+    test_samples: 600
+
+# 训练配置
+training:
+  # 快速测试配置
+  quick:
+    epochs: 10
+    batch_size: 16
+    learning_rate: 1.0e-4
+    num_runs: 1
+    early_stopping: false
+
+  # 完整评估配置 (论文用)
+  full:
+    epochs: 100
+    batch_size: 32
+    learning_rate: 1.0e-4
+    weight_decay: 0.01
+    num_runs: 3
+    warmup_epochs: 5
+    scheduler: "cosine"
+    early_stopping: true
+    patience: 10
+    mixed_precision: true
+    gradient_clip: 1.0
+
+# 优化器配置
+optimizer:
+  type: "AdamW"
+  lr: 1.0e-4
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+# 学习率调度
+scheduler:
+  type: "cosine"
+  T_max: 100  # 与epochs相同
+  eta_min: 1.0e-6
+
+# 模型配置
+model:
+  backbone: "clip-vit-l-14"
+  vision_dim: 768
+  language_dim: 768
+  fusion_output_dim: 768
+  freeze_backbone: true
+
+# 评估指标
+metrics:
+  performance:
+    - "final_accuracy"
+    - "best_val_accuracy"
+    - "convergence_epoch"
+    - "test_accuracy"
+
+  efficiency:
+    - "flops"          # MFLOPs
+    - "params"         # MParams
+    - "latency_ms"     # 推理延迟
+    - "throughput"     # items/sec
+    - "memory_mb"      # GPU显存
+
+  training:
+    - "training_time"
+    - "total_epochs"
+    - "early_stopped"
+
+# 统计检验
+statistics:
+  significance_level: 0.05
+  confidence_interval: 0.95
+  tests:
+    - "paired_t_test"
+    - "cohens_d"
+    - "bootstrap_ci"
+
+# 架构列表
+architectures:
+  # 基线架构 (人工设计)
+  baselines:
+    - name: "ConcatMLP"
+      type: "mlp"
+      hidden_dim: 512
+      num_layers: 2
+
+    - name: "BilinearPooling"
+      type: "bilinear"
+      hidden_dim: 512
+
+    - name: "CrossModalAttention"
+      type: "attention"
+      hidden_dim: 512
+      num_heads: 8
+      num_layers: 2
+
+    - name: "CLIPFusion"
+      type: "linear"
+      output_dim: 768
+
+    - name: "FiLM"
+      type: "modulation"
+      hidden_dim: 512
+
+  # 发现架构 (NAS生成)
+  discovered:
+    - name: "arch_024"
+      reward_3ep: 0.952
+      type: "hybrid"
+
+    - name: "arch_019"
+      reward_3ep: 0.933
+      type: "attention+mlp"
+
+    - name: "arch_021"
+      reward_3ep: 0.933
+      type: "mlp"
+
+    - name: "arch_012"
+      reward_3ep: 0.906
+      type: "transformer"
+
+    - name: "arch_025"
+      reward_3ep: 0.899
+      type: "hybrid"
+
+    - name: "arch_004"
+      reward_3ep: 0.873
+      type: "mlp+attention"
+
+    - name: "arch_022"
+      reward_3ep: 0.873
+      type: "mlp"
+
+    - name: "arch_015"
+      reward_3ep: 0.850
+      type: "gated"
+
+    - name: "arch_008"
+      reward_3ep: 0.825
+      type: "hybrid"
+
+    - name: "arch_017"
+      reward_3ep: 0.819
+      type: "attention+mlp"
+
+# 消融实验配置
+ablation:
+  target_arch: "arch_024"
+  variants:
+    - name: "full"
+      description: "完整架构"
+
+    - name: "no_bilinear"
+      description: "移除bilinear层"
+      remove: ["bilinear"]
+
+    - name: "no_transformer"
+      description: "移除transformer层"
+      remove: ["transformer"]
+
+    - name: "no_residual"
+      description: "移除残差连接"
+      remove: ["residual"]
+
+    - name: "more_heads"
+      description: "增加attention heads"
+      modify: {num_heads: 4}
+
+    - name: "larger_dim"
+      description: "增加hidden维度"
+      modify: {hidden_dim: 436}
+
+# 输出配置
+output:
+  save_checkpoints: true
+  save_history: true
+  log_interval: 10
+  generate_plots: true
+  export_format: ["json", "csv", "markdown"]
+
+# 可视化配置
+visualization:
+  pareto_frontier:
+    x_axis: "flops"      # 或 "params", "latency"
+    y_axis: "accuracy"
+
+  comparison_plots:
+    - "accuracy_comparison"
+    - "efficiency_comparison"
+    - "convergence_curves"
+    - "design_pattern_analysis"
+
+  cross_dataset:
+    plot_type: "heatmap"
+    normalize: true
