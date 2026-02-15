@@ -125,6 +125,21 @@ class FullTrainer:
             output = self.fusion_module(dummy_vision, dummy_text)
             return output.shape[-1]
 
+    def preprocess_image(self, img):
+        """预处理PIL图像为张量"""
+        from torchvision import transforms
+        from PIL import Image
+        transform = transforms.Compose([
+            transforms.Resize(224, interpolation=Image.BICUBIC),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.48145466, 0.4578275, 0.40821073],
+                std=[0.26862954, 0.26130258, 0.27577711]
+            )
+        ])
+        return transform(img)
+
     def train(
         self,
         train_loader: DataLoader,
@@ -220,13 +235,48 @@ class FullTrainer:
         total = 0
 
         for batch_idx, batch in enumerate(train_loader):
-            images = batch['image'].to(self.device)
-            texts = batch['text']
-            labels = batch['label'].to(self.device)
+            # Handle both dict and list batch formats
+            if isinstance(batch, dict):
+                # 处理图像 - 可能是tensor或PIL图像list
+                images = batch['image']
+                if isinstance(images, list):
+                    # PIL图像列表，需要预处理
+                    images = torch.stack([self.preprocess_image(img) for img in images])
+                if hasattr(images, 'to'):
+                    images = images.to(self.device)
+
+                # 处理文本 - 可能是'question', 'text', 或列表
+                texts = batch.get('text') or batch.get('question')
+                if texts is None:
+                    # 如果没有text字段，创建一个dummy tensor
+                    texts = torch.randn(images.shape[0], 768).to(self.device)
+                elif hasattr(texts, 'to'):
+                    texts = texts.to(self.device)
+
+                labels = batch['label']
+                if isinstance(labels, list):
+                    labels = torch.tensor(labels)
+                labels = labels.to(self.device)
+            elif isinstance(batch, (list, tuple)) and len(batch) == 3:
+                images, texts, labels = batch
+                images = images.to(self.device)
+                # texts可能是list或tensor，如果是tensor需要移动到device
+                if hasattr(texts, 'to'):
+                    texts = texts.to(self.device)
+                # labels也可能是list
+                if isinstance(labels, list):
+                    labels = torch.tensor(labels)
+                labels = labels.to(self.device)
+            else:
+                raise ValueError(f"Unexpected batch format: {type(batch)}")
 
             # 编码器前向 (no grad)
             with torch.no_grad():
                 vision_features = self.vision_encoder(images)
+                # 如果texts是字符串列表，需要先tokenize
+                if isinstance(texts, list):
+                    import clip
+                    texts = clip.tokenize(texts, truncate=True).to(self.device)
                 text_features = self.text_encoder(texts)
 
             # 融合 + 分类
@@ -286,12 +336,47 @@ class FullTrainer:
 
         with torch.no_grad():
             for batch in val_loader:
-                images = batch['image'].to(self.device)
-                texts = batch['text']
-                labels = batch['label'].to(self.device)
+                # Handle both dict and list batch formats
+                if isinstance(batch, dict):
+                    # 处理图像 - 可能是tensor或PIL图像list
+                    images = batch['image']
+                    if isinstance(images, list):
+                        # PIL图像列表，需要预处理
+                        images = torch.stack([self.preprocess_image(img) for img in images])
+                    if hasattr(images, 'to'):
+                        images = images.to(self.device)
+
+                    # 处理文本 - 可能是'question', 'text', 或列表
+                    texts = batch.get('text') or batch.get('question')
+                    if texts is None:
+                        # 如果没有text字段，创建一个dummy tensor
+                        texts = torch.randn(images.shape[0], 768).to(self.device)
+                    elif hasattr(texts, 'to'):
+                        texts = texts.to(self.device)
+
+                    labels = batch['label']
+                    if isinstance(labels, list):
+                        labels = torch.tensor(labels)
+                    labels = labels.to(self.device)
+                elif isinstance(batch, (list, tuple)) and len(batch) == 3:
+                    images, texts, labels = batch
+                    images = images.to(self.device)
+                    # texts可能是list或tensor，如果是tensor需要移动到device
+                    if hasattr(texts, 'to'):
+                        texts = texts.to(self.device)
+                    # labels也可能是list
+                    if isinstance(labels, list):
+                        labels = torch.tensor(labels)
+                    labels = labels.to(self.device)
+                else:
+                    raise ValueError(f"Unexpected batch format: {type(batch)}")
 
                 # 编码
                 vision_features = self.vision_encoder(images)
+                # 如果texts是字符串列表，需要先tokenize
+                if isinstance(texts, list):
+                    import clip
+                    texts = clip.tokenize(texts, truncate=True).to(self.device)
                 text_features = self.text_encoder(texts)
 
                 # 融合 + 分类

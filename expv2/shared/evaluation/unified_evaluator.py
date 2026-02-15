@@ -209,6 +209,19 @@ class UnifiedEvaluator:
         """获取数据加载器"""
         # 使用已验证的数据集配置
         from data.dataset_loader import get_dataset_loader
+        from torchvision import transforms
+        from PIL import Image
+
+        # 获取CLIP预处理transform
+        transform = transforms.Compose([
+            transforms.Resize(224, interpolation=Image.BICUBIC),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.48145466, 0.4578275, 0.40821073],
+                std=[0.26862954, 0.26130258, 0.27577711]
+            )
+        ])
 
         # 对于完整训练(100 epochs)，使用更多样本
         # 对于few-shot快速测试，使用num_shots
@@ -218,7 +231,8 @@ class UnifiedEvaluator:
                 dataset_name=self.dataset,
                 batch_size=self.batch_size,
                 num_shots=256,  # 更多样本用于完整训练
-                data_dir='./data'
+                data_dir='./data',
+                transform=transform  # 添加预处理
             )
         else:
             # 快速测试模式 - 使用few-shot
@@ -226,7 +240,8 @@ class UnifiedEvaluator:
                 dataset_name=self.dataset,
                 batch_size=self.batch_size,
                 num_shots=16,  # few-shot快速测试
-                data_dir='./data'
+                data_dir='./data',
+                transform=transform  # 添加预处理
             )
 
         # DatasetLoader.load() 返回 (train_loader, test_loader)
@@ -241,11 +256,28 @@ class UnifiedEvaluator:
         model, _ = clip.load('ViT-L/14', device=self.device)
 
         class VisionEncoder(nn.Module):
-            def __init__(self, clip_model):
+            def __init__(self, clip_model, device):
                 super().__init__()
                 self.model = clip_model
+                self.device = device
 
             def forward(self, images):
+                # 如果images是PIL图像列表，需要先预处理
+                if isinstance(images, list):
+                    from torchvision import transforms
+                    from PIL import Image
+                    transform = transforms.Compose([
+                        transforms.Resize(224, interpolation=Image.BICUBIC),
+                        transforms.CenterCrop(224),
+                        transforms.ToTensor(),
+                        transforms.Normalize(
+                            mean=[0.48145466, 0.4578275, 0.40821073],
+                            std=[0.26862954, 0.26130258, 0.27577711]
+                        )
+                    ])
+                    images = torch.stack([transform(img) for img in images])
+                if images.device != self.device:
+                    images = images.to(self.device)
                 return self.model.encode_image(images).float()
 
         class TextEncoder(nn.Module):
@@ -259,7 +291,7 @@ class UnifiedEvaluator:
                     texts = clip.tokenize(texts, truncate=True).to(self.model.device)
                 return self.model.encode_text(texts).float()
 
-        return VisionEncoder(model), TextEncoder(model)
+        return VisionEncoder(model, self.device), TextEncoder(model)
 
     def _get_num_classes(self) -> int:
         """获取数据集类别数"""

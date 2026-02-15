@@ -120,7 +120,8 @@ class DatasetLoader:
                  batch_size: int = 4,
                  data_dir: str = './data',
                  shot_strategy: str = 'balanced',
-                 seed: int = 42):
+                 seed: int = 42,
+                 transform=None):
         """
         Initialize dataset loader.
 
@@ -131,6 +132,7 @@ class DatasetLoader:
             data_dir: Directory to store/load data
             shot_strategy: 'balanced', 'stratified', or 'random'
             seed: Random seed
+            transform: Optional transform for image preprocessing
         """
         if dataset_name.lower() not in self.SUPPORTED_DATASETS:
             raise ValueError(f"Dataset {dataset_name} not supported. "
@@ -142,6 +144,7 @@ class DatasetLoader:
         self.data_dir = Path(data_dir)
         self.shot_strategy = shot_strategy
         self.seed = seed
+        self.transform = transform
 
         # Create data directory
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -174,8 +177,8 @@ class DatasetLoader:
                    f"{len(val_data)} validation samples")
 
         # Create datasets
-        train_dataset = BaseDataset(train_data_fewshot)
-        val_dataset = BaseDataset(val_data)
+        train_dataset = BaseDataset(train_data_fewshot, transform=self.transform)
+        val_dataset = BaseDataset(val_data, transform=self.transform)
 
         # Create dataloaders with custom collate function
         train_loader = DataLoader(
