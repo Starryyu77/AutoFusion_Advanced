@@ -93,6 +93,10 @@ class UnifiedEvaluator:
             current_seed = seed + run_idx
             torch.manual_seed(current_seed)
 
+            # 确保 fusion_module 在正确的设备上
+            fusion_module = fusion_module.to(self.device)
+            fusion_module.train()
+
             # 获取数据加载器
             train_loader, val_loader, test_loader = self._get_data_loaders()
 

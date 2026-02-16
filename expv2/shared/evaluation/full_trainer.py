@@ -119,9 +119,10 @@ class FullTrainer:
     def _get_fusion_dim(self) -> int:
         """获取融合模块输出维度"""
         # 通过前向传播推断
+        device = next(self.fusion_module.parameters()).device
         with torch.no_grad():
-            dummy_vision = torch.randn(1, 768)
-            dummy_text = torch.randn(1, 768)
+            dummy_vision = torch.randn(1, 768, device=device)
+            dummy_text = torch.randn(1, 768, device=device)
             output = self.fusion_module(dummy_vision, dummy_text)
             return output.shape[-1]
 
