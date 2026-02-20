@@ -127,7 +127,7 @@ class FullTrainer:
             return output.shape[-1]
 
     def preprocess_image(self, img):
-        """预处理PIL图像为张量"""
+        """预处理PIL图像或文件路径为张量"""
         from torchvision import transforms
         from PIL import Image
         transform = transforms.Compose([
@@ -139,6 +139,9 @@ class FullTrainer:
                 std=[0.26862954, 0.26130258, 0.27577711]
             )
         ])
+        # 如果img是文件路径字符串，先加载图像
+        if isinstance(img, str):
+            img = Image.open(img).convert('RGB')
         return transform(img)
 
     def train(
@@ -236,6 +239,12 @@ class FullTrainer:
         total = 0
 
         for batch_idx, batch in enumerate(train_loader):
+            # Skip empty batches (when all images are None)
+            if isinstance(batch, dict) and (batch.get('image') is None or len(batch.get('image', [])) == 0):
+                continue
+            if not batch:
+                continue
+
             # Handle both dict and list batch formats
             if isinstance(batch, dict):
                 # 处理图像 - 可能是tensor或PIL图像list
@@ -246,11 +255,17 @@ class FullTrainer:
                 if hasattr(images, 'to'):
                     images = images.to(self.device)
 
-                # 处理文本 - 可能是'question', 'text', 或列表
-                texts = batch.get('text') or batch.get('question')
+                # 处理文本 - 可能是'question', 'text', 'caption', 'relation' 等
+                texts = batch.get('text') or batch.get('question') or batch.get('caption') or batch.get('relation')
                 if texts is None:
-                    # 如果没有text字段，创建一个dummy tensor
-                    texts = torch.randn(images.shape[0], 768).to(self.device)
+                    # 如果没有text字段，使用所有可用文本字段拼接
+                    text_fields = [k for k in batch.keys() if isinstance(batch[k], list) and k not in ['image', 'label']]
+                    if text_fields:
+                        # 使用第一个可用的文本字段
+                        texts = batch[text_fields[0]]
+                    else:
+                        # 如果没有可用文本字段，创建dummy tensor
+                        texts = torch.randn(images.shape[0], 77, dtype=torch.long).to(self.device)
                 elif hasattr(texts, 'to'):
                     texts = texts.to(self.device)
 
@@ -277,7 +292,13 @@ class FullTrainer:
                 # 如果texts是字符串列表，需要先tokenize
                 if isinstance(texts, list):
                     import clip
-                    texts = clip.tokenize(texts, truncate=True).to(self.device)
+                    # 过滤空字符串并确保所有元素都是字符串
+                    texts = [str(t) if t else "" for t in texts]
+                    if not texts or all(t == "" for t in texts):
+                        # 如果所有文本都是空的，创建dummy tensor
+                        texts = torch.randn(images.shape[0], 77, dtype=torch.long).to(self.device)
+                    else:
+                        texts = clip.tokenize(texts, truncate=True).to(self.device)
                 text_features = self.text_encoder(texts)
 
             # 融合 + 分类
@@ -321,8 +342,8 @@ class FullTrainer:
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-        avg_loss = total_loss / len(train_loader)
-        accuracy = correct / total
+        avg_loss = total_loss / len(train_loader) if len(train_loader) > 0 else 0.0
+        accuracy = correct / total if total > 0 else 0.0
 
         return avg_loss, accuracy
 
@@ -337,6 +358,12 @@ class FullTrainer:
 
         with torch.no_grad():
             for batch in val_loader:
+                # Skip empty batches (when all images are None)
+                if isinstance(batch, dict) and (batch.get('image') is None or len(batch.get('image', [])) == 0):
+                    continue
+                if not batch:
+                    continue
+
                 # Handle both dict and list batch formats
                 if isinstance(batch, dict):
                     # 处理图像 - 可能是tensor或PIL图像list
@@ -377,7 +404,13 @@ class FullTrainer:
                 # 如果texts是字符串列表，需要先tokenize
                 if isinstance(texts, list):
                     import clip
-                    texts = clip.tokenize(texts, truncate=True).to(self.device)
+                    # 过滤空字符串并确保所有元素都是字符串
+                    texts = [str(t) if t else "" for t in texts]
+                    if not texts or all(t == "" for t in texts):
+                        # 如果所有文本都是空的，创建dummy tensor
+                        texts = torch.randn(images.shape[0], 77, dtype=torch.long).to(self.device)
+                    else:
+                        texts = clip.tokenize(texts, truncate=True).to(self.device)
                 text_features = self.text_encoder(texts)
 
                 # 融合 + 分类
@@ -396,8 +429,8 @@ class FullTrainer:
                 total += labels.size(0)
                 correct += predicted.eq(labels).sum().item()
 
-        avg_loss = total_loss / len(val_loader)
-        accuracy = correct / total
+        avg_loss = total_loss / len(val_loader) if len(val_loader) > 0 else 0.0
+        accuracy = correct / total if total > 0 else 0.0
 
         return avg_loss, accuracy
 

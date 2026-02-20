@@ -30,17 +30,24 @@ def custom_collate_fn(batch):
     Custom collate function that handles None values in batch.
 
     PyTorch's default collate fails when batch contains None.
-    This function filters out None values and handles mixed types.
+    This function filters out samples with None images and handles mixed types.
     """
     if not batch:
         return {}
 
-    # Get keys from first item
-    keys = batch[0].keys()
+    # Filter out samples with None images
+    valid_batch = [item for item in batch if item.get('image') is not None]
+
+    if not valid_batch:
+        # All samples have None images
+        return {}
+
+    # Get keys from first valid item
+    keys = valid_batch[0].keys()
     collated = {}
 
     for key in keys:
-        values = [item[key] for item in batch]
+        values = [item[key] for item in valid_batch]
 
         # Filter out None values
         non_none_values = [v for v in values if v is not None]
@@ -53,7 +60,7 @@ def custom_collate_fn(batch):
             if isinstance(non_none_values[0], torch.Tensor):
                 collated[key] = torch.stack(non_none_values)
             else:
-                collated[key] = values  # Keep as list if not tensors
+                collated[key] = non_none_values  # Keep as list if not tensors
         elif key == 'label':
             # Stack labels into tensor
             if isinstance(non_none_values[0], (int, float)):
@@ -86,7 +93,40 @@ class BaseDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
+        # Check if decoded_image is available (MathVista dataset)
+        if 'decoded_image' in item and item['decoded_image'] is not None:
+            try:
+                from PIL import Image
+                image = item['decoded_image']
+                # Convert to RGB if needed
+                if image.mode != 'RGB':
+                    image = image.convert('RGB')
+                if self.transform:
+                    image = self.transform(image)
+                item['image'] = image
+                return item
+            except Exception as e:
+                logger.warning(f"Failed to process decoded_image: {e}")
+
+        # Check if image is already a PIL Image
+        if 'image' in item and item['image'] is not None:
+            if hasattr(item['image'], 'convert'):  # PIL Image
+                try:
+                    image = item['image']
+                    if image.mode != 'RGB':
+                        image = image.convert('RGB')
+                    if self.transform:
+                        image = self.transform(image)
+                    item['image'] = image
+                    return item
+                except Exception as e:
+                    logger.warning(f"Failed to process PIL image: {e}")
+            elif isinstance(item['image'], torch.Tensor):
+                # Already a tensor, no processing needed
+                return item
+
         # Load image if path is provided
+        image_loaded = False
         if 'image_path' in item and item['image_path'] is not None and os.path.exists(item['image_path']):
             try:
                 from PIL import Image
@@ -94,8 +134,35 @@ class BaseDataset(Dataset):
                 if self.transform:
                     image = self.transform(image)
                 item['image'] = image
+                image_loaded = True
             except Exception as e:
-                logger.warning(f"Failed to load image {item['image_path']}: {e}")
+                logger.warning(f"Failed to load image from image_path {item['image_path']}: {e}")
+
+        # If image is a string (filename), try to load it
+        if not image_loaded and 'image' in item and isinstance(item['image'], str):
+            # Try to find the image file in various locations
+            possible_paths = [
+                item['image'],
+                os.path.join(os.path.dirname(__file__), '../../data', item['image']),
+                os.path.join(os.path.dirname(__file__), '../../data/coco/train2017', item['image']),  # COCO
+                os.path.join(os.getcwd(), 'data', item['image']),
+                os.path.join(os.getcwd(), 'data/coco/train2017', item['image']),  # COCO
+            ]
+            for img_path in possible_paths:
+                if os.path.exists(img_path):
+                    try:
+                        from PIL import Image
+                        image = Image.open(img_path).convert('RGB')
+                        if self.transform:
+                            image = self.transform(image)
+                        item['image'] = image
+                        image_loaded = True
+                        break
+                    except Exception as e:
+                        logger.warning(f"Failed to load image from {img_path}: {e}")
+
+            if not image_loaded:
+                logger.warning(f"Could not find image file: {item['image']}")
                 item['image'] = None
 
         return item
@@ -187,7 +254,8 @@ class DatasetLoader:
             shuffle=True,
             num_workers=0,  # Use 0 to avoid multiprocessing issues
             pin_memory=True if torch.cuda.is_available() else False,
-            collate_fn=custom_collate_fn
+            collate_fn=custom_collate_fn,
+            drop_last=True  # Ensure consistent batch size
         )
 
         val_loader = DataLoader(
@@ -196,7 +264,8 @@ class DatasetLoader:
             shuffle=False,
             num_workers=0,
             pin_memory=True if torch.cuda.is_available() else False,
-            collate_fn=custom_collate_fn
+            collate_fn=custom_collate_fn,
+            drop_last=True  # Ensure consistent batch size
         )
 
         return train_loader, val_loader
@@ -296,6 +365,10 @@ class DatasetLoader:
 
             train_data = []
             val_data = []
+            skipped = 0
+
+            # COCO train2017 directory
+            coco_dir = self.data_dir / 'coco' / 'train2017'
 
             for item in dataset:
                 # Handle label - VSR uses boolean True/False
@@ -308,6 +381,15 @@ class DatasetLoader:
                 else:
                     # Handle numpy types or other
                     label = 1 if raw_label else 0
+
+                # Check if image exists in COCO train2017
+                img_filename = item.get('image')
+                if img_filename and coco_dir.exists():
+                    img_path = coco_dir / img_filename
+                    if not img_path.exists():
+                        # Skip samples with missing images
+                        skipped += 1
+                        continue
 
                 processed = {
                     'image': item.get('image'),
@@ -322,6 +404,9 @@ class DatasetLoader:
                     train_data.append(processed)
                 else:
                     val_data.append(processed)
+
+            if skipped > 0:
+                logger.info(f"VSR: Skipped {skipped} samples with missing COCO images")
 
             return train_data, val_data
 
@@ -349,6 +434,7 @@ class DatasetLoader:
             for item in dataset:
                 processed = {
                     'image': item.get('image'),
+                    'decoded_image': item.get('decoded_image'),  # Actual PIL Image
                     'image_path': item.get('image_path'),
                     'question': item.get('question'),
                     'choices': item.get('choices', []),

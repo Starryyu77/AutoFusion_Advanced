@@ -39,10 +39,10 @@ class FusionModule(nn.Module):
         
         # Cross-modal attention
         attn_out, _ = self.attention(l, v, v)  # Language attends to vision
-        attn_out = self.attention_norm(attn_out.squeeze(1) + language_features)
+        attn_out = self.attention_norm(attn_out.squeeze(1) + l.squeeze(1))
         
         # MLP fusion
-        fused = torch.cat([vision_features, attn_out], dim=-1)
+        fused = torch.cat([v.squeeze(1), attn_out], dim=-1)
         for mlp_layer in self.mlp_layers:
             fused = mlp_layer(fused)
         
