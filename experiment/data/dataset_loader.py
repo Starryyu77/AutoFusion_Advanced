@@ -400,7 +400,9 @@ class DatasetLoader:
                     'uuid': item.get('uuid')
                 }
 
-                if hash(processed['uuid']) % 10 < 8:
+                # Use caption for hash split since uuid may be None
+                split_key = processed['caption'] if processed['caption'] else str(idx)
+                if hash(split_key) % 10 < 8:
                     train_data.append(processed)
                 else:
                     val_data.append(processed)

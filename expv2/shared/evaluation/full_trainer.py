@@ -374,8 +374,8 @@ class FullTrainer:
                     if hasattr(images, 'to'):
                         images = images.to(self.device)
 
-                    # 处理文本 - 可能是'question', 'text', 或列表
-                    texts = batch.get('text') or batch.get('question')
+                    # 处理文本 - 可能是'question', 'text', 'caption', 'relation' 等
+                    texts = batch.get('text') or batch.get('question') or batch.get('caption') or batch.get('relation')
                     if texts is None:
                         # 如果没有text字段，创建一个dummy tensor
                         texts = torch.randn(images.shape[0], 768).to(self.device)
