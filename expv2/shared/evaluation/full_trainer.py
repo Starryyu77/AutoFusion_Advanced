@@ -259,14 +259,14 @@ class FullTrainer:
                 texts = batch.get('text') or batch.get('question') or batch.get('caption') or batch.get('relation')
                 if texts is None:
                     # 如果没有text字段，使用所有可用文本字段拼接
-                    text_fields = [k for k in batch.keys() if isinstance(batch[k], list) and k not in ['image', 'label']]
+                    text_fields = [k for k in batch.keys() if isinstance(batch[k], list) and k not in ['image', 'label', 'decoded_image', 'image_path']]
                     if text_fields:
                         # 使用第一个可用的文本字段
                         texts = batch[text_fields[0]]
                     else:
                         # 如果没有可用文本字段，创建dummy tensor
                         texts = torch.randn(images.shape[0], 77, dtype=torch.long).to(self.device)
-                elif hasattr(texts, 'to'):
+                elif hasattr(texts, 'to') and texts is not None:
                     texts = texts.to(self.device)
 
                 labels = batch['label']
@@ -378,8 +378,8 @@ class FullTrainer:
                     texts = batch.get('text') or batch.get('question') or batch.get('caption') or batch.get('relation')
                     if texts is None:
                         # 如果没有text字段，创建一个dummy tensor
-                        texts = torch.randn(images.shape[0], 768).to(self.device)
-                    elif hasattr(texts, 'to'):
+                        texts = torch.randn(images.shape[0], 77, dtype=torch.long).to(self.device)
+                    elif hasattr(texts, 'to') and texts is not None:
                         texts = texts.to(self.device)
 
                     labels = batch['label']
