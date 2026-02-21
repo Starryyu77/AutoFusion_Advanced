@@ -265,7 +265,7 @@ class DatasetLoader:
             num_workers=0,
             pin_memory=True if torch.cuda.is_available() else False,
             collate_fn=custom_collate_fn,
-            drop_last=True  # Ensure consistent batch size
+            drop_last=False  # Keep all validation samples (critical for small datasets like MMMU)
         )
 
         return train_loader, val_loader
