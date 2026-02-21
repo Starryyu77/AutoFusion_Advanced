@@ -103,8 +103,8 @@ class UnifiedEvaluator:
             # 获取编码器 (使用CLIP)
             vision_encoder, text_encoder = self._get_encoders()
 
-            # 获取类别数
-            num_classes = self._get_num_classes()
+            # 获取类别数 (动态检测用于MMMU等变长选项数据集)
+            num_classes = self._get_num_classes_from_loader(train_loader)
 
             # 创建训练器
             trainer = FullTrainer(
@@ -297,11 +297,23 @@ class UnifiedEvaluator:
 
         return VisionEncoder(model, self.device), TextEncoder(model)
 
-    def _get_num_classes(self) -> int:
-        """获取数据集类别数"""
+    def _get_num_classes_from_loader(self, train_loader) -> int:
+        """从数据加载器动态获取类别数"""
+        # For MMMU, scan data to find actual max labels
+        if self.dataset == 'mmmu':
+            # MMMU has variable options (up to 50), scan to find max
+            max_label = 0
+            for batch in train_loader:
+                labels = batch['label']
+                if isinstance(labels, torch.Tensor):
+                    max_label = max(max_label, int(labels.max().item()))
+                elif isinstance(labels, list):
+                    max_label = max(max_label, max(labels))
+            # Ensure minimum of 8 classes for MMMU
+            return max(max_label + 1, 8)
+
         dataset_classes = {
             'ai2d': 4,
-            'mmmu': 4,
             'vsr': 2,
             'mathvista': 5
         }

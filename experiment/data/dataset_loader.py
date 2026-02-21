@@ -325,23 +325,56 @@ class DatasetLoader:
             train_data = []
             val_data = []
 
-            for item in combined_dataset:
+            valid_samples = 0
+            skipped_samples = 0
+            for idx, item in enumerate(combined_dataset):
+                # MMMU has multiple image fields (image_1 to image_7)
+                # Use the first available image
+                image = None
+                for i in range(1, 8):
+                    img = item.get(f'image_{i}')
+                    if img is not None:
+                        image = img
+                        break
+
+                # MMMU uses 'options' not 'choices'
+                choices = item.get('options', [])
+                answer = item.get('answer', '')
+
+                # Filter: only keep multiple choice with reasonable options (2-50)
+                # MMMU has some questions with many options
+                if len(choices) < 2 or len(choices) > 50:
+                    skipped_samples += 1
+                    continue
+
+                # Convert answer letter to index (A->0, B->1, etc.)
+                label = 0
+                if isinstance(answer, str) and len(answer) > 0:
+                    label = ord(answer[0].upper()) - ord('A')
+                    if label < 0 or label >= len(choices):
+                        skipped_samples += 1
+                        continue
+
                 processed = {
-                    'image': item.get('image'),
-                    'image_path': item.get('image_path'),
+                    'image': image,
+                    'decoded_image': image,  # MMMU images are PIL Images
                     'question': item.get('question'),
-                    'choices': item.get('choices', []),
-                    'answer': item.get('answer'),
-                    'label': item.get('answer_index', 0),  # Use answer index as label
+                    'choices': choices,
+                    'answer': answer,
+                    'label': label,
                     'subject': item.get('id', '').split('_')[0] if item.get('id') else 'unknown'
                 }
 
                 # Split: 80% for few-shot sampling, 20% for validation
-                # This is a simple split; in practice, you might want stratified split
-                if hash(processed['question']) % 10 < 8:
+                # Use index for deterministic split
+                if valid_samples % 10 < 8:
                     train_data.append(processed)
                 else:
                     val_data.append(processed)
+                valid_samples += 1
+
+            if skipped_samples > 0:
+                logger.info(f"MMMU: Skipped {skipped_samples} samples with invalid options/answers")
 
             return train_data, val_data
 
