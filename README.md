@@ -2,206 +2,186 @@
 
 自进化多模态神经架构搜索(NAS)系统实验框架
 
+## ⚠️ 重要发现
+
+本实验框架系统性地比较了自动化NAS与人工设计的多模态融合架构。**核心发现：简单评估器无法预测复杂任务性能，人工设计在复杂任务上仍具优势。**
+
+---
+
 ## 项目概述
 
-AutoFusion 是一个用于自动设计多模态融合架构的神经网络架构搜索(NAS)系统，系统性比较 RL 算法、提示策略对多模态架构生成的影响。
+AutoFusion 是一个用于自动设计多模态融合架构的神经网络架构搜索(NAS)系统。通过系统性对比 RL 算法、提示策略对多模态架构生成的影响，我们发现：
+
+1. **评估器选择至关重要**：简单数据集(AI2D)无法区分架构优劣
+2. **人工设计价值**：在复杂任务上，专家设计的架构表现更稳健
+3. **效率差距显著**：NAS发现的架构平均FLOPs是人工设计的6.5倍
 
 **核心流程**: Controller → Generator(LLM) → Evaluator(Sandbox) → Reward
+
+---
+
+## 实验结果总览
+
+### Phase 1-3: 架构搜索 (已完成 ✅)
+
+使用AI2D数据集+3epochs快速评估搜索架构：
+
+| Phase | 名称 | 最佳Reward | 发现架构数 |
+|-------|------|-----------|-----------|
+| 1 | Prompt对比 | 0.873 | - |
+| 2.5 | 评估器验证 | - | - |
+| 3 | 架构发现 | **0.952** | 26个 |
+
+**⚠️ 局限性**: Phase 3的reward基于AI2D+3epochs，在复杂任务上泛化能力不足。
+
+### E1/E2: 完整评估 (已完成 ✅)
+
+使用100epochs完整训练评估13个架构(8 NAS + 5 Baseline)：
+
+| 数据集 | 难度 | NAS最佳 | 人工最佳 | 结论 |
+|--------|------|---------|----------|------|
+| **AI2D** | 简单 | 100% | 100% | 过于简单，无法区分 |
+| **VSR** | 中等 | ~50% | ~50% | 二分类随机水平 |
+| **MathVista** | ? | 100% | 100% | 验证集可能过小 |
+| **MMMU** | 困难 | **~33%** | **~46%** | **人工设计 > NAS** |
+
+**核心结论**:
+- 简单任务：简单架构最高效 (CLIPFusion: 2.36M FLOPs)
+- 复杂任务：人工设计更鲁棒 (FiLM > arch_017)
+- NAS效率问题：平均FLOPs是人工设计的6.5倍
 
 ---
 
 ## 项目结构
 
 ```
-experiment/
-├── base/                 # 抽象基类
-├── controllers/          # 6个搜索算法 (PPO/GRPO/GDPO/Evolution/CMA-ES/Random)
-├── generators/           # 5个Prompt策略 (CoT/FewShot/Critic/Shape/RolePlay)
-├── evaluators/           # RealDataFewShotEvaluator (已验证)
-├── data/                 # 数据集加载器 (MMMU/VSR/MathVista/AI2D)
-├── utils/                # OOM防护 + 秩相关验证 + LLM Client
-├── phase0_validation/    # API验证 (✅ PASSED)
-├── phase2_controllers/   # Controller对比实验 (✅ 完成)
-├── phase2_5/             # 评估器验证 (✅ 完成)
-│   ├── run_2_5_1_dataset_selection.py
-│   ├── run_2_5_2_training_depth.py
-│   ├── run_2_5_3_architecture_fairness.py
-│   └── results/
-├── phase1_prompts/       # Prompt对比实验 (✅ 完成)
-└── phase3_discovery/      # 架构发现 (✅ 完成) **Best: 0.952**
+experiment/                 # 原始实验 (Phase 1-3)
+├── phase1_prompts/        # Prompt策略对比
+├── phase2_controllers/    # Controller算法对比
+├── phase2_5/              # 评估器验证
+├── phase3_discovery/      # 架构发现 (Best: 0.952)
+└── evaluators/            # RealDataFewShotEvaluator
 
-docs/
-├── experiments/          # 实验报告
-│   ├── PHASE1_REPORT.md       # Phase 1完整报告
-│   ├── PHASE1_RESULTS_SUMMARY.json  # Phase 1结果
-│   ├── PHASE_2_5_1_REPORT.md  # 数据集选择
-│   ├── PHASE_2_5_2_REPORT.md  # 训练深度校准
-│   └── PHASE_2_5_3_REPORT.md  # 架构公平性
-└── design/               # 设计文档
+expv2/                      # 完整评估实验 (E1-E7)
+├── E1_main_evaluation/    # AI2D 100epochs完整评估
+├── E2_cross_dataset/      # 跨数据集泛化测试
+└── shared/                # 共享组件
+    ├── baselines/         # 5个人工设计基线
+    ├── discovered/        # 8个NAS发现架构
+    └── evaluation/        # 统一评估框架
+
+docs/experiments/           # 实验报告
+├── PHASE1_REPORT.md
+├── PHASE3_DISCOVERY_RESULTS.md
+└── ...
+
+EXPERIMENTS_SUMMARY.md      # 完整结果汇总 ⭐
 ```
 
 ---
 
-## 实验进度
+## 关键发现详解
 
-| Phase | 名称 | 状态 | 关键结果 |
-|-------|------|------|----------|
-| 0/0.5 | API验证 | ✅ | Mock ≈ Real (τ验证通过) |
-| 2.1 | Controller对比 | ✅ | Evolution(9.8) > PPO(8.68) > GRPO(5.69) > GDPO(4.69) |
-| **2.5** | **评估器验证** | **✅** | **AI2D + 3 epochs + EXCELLENT公平性** |
-| 1 | Prompt对比 | ✅ | **FewShot (0.873)** > CoT (0.873) > Critic (0.819) |
-| 3 | 架构发现 | ✅ **完成** | **Best: 0.952** - 26 architectures discovered |
+### 1. AI2D过于简单
 
----
+**E1结果**: 所有13个架构均达到100%准确率
 
-## ✅ Phase 1: Prompt策略对比完成
+| 类型 | 代表架构 | 准确率 | FLOPs |
+|------|---------|--------|-------|
+| 简单架构 | CLIPFusion | 100% | **2.36M** ✅ |
+| 人工设计 | FiLM | 100% | 6.29M |
+| NAS发现 | arch_022 | 100% | 12.34M |
 
-### 实验结果
+**启示**: 16-shot AI2D无法作为可靠的架构评估基准。
 
-| 排名 | 策略 | Best Reward | Validity Rate | Convergence | 状态 |
-|------|------|-------------|---------------|-------------|------|
-| 🥇 | **FewShot** | **0.873** | 100% | Iter 6 | ✅ 成功 |
-| 🥇 | **CoT** | **0.873** | 100% | Iter 4 | ✅ 成功 |
-| 🥉 | **Critic** | **0.819** | 100% | Iter 2 | ✅ 成功 |
-| 4 | **Shape** | **0.684** | 100% | Iter 7 | ✅ 成功 |
-| 5 | **RolePlay** | 0.000 | 0% | - | ❌ 失败 |
+### 2. 复杂任务上人工设计更优
 
-### 关键发现
+**E2-MMMU结果**: (8样本验证集)
 
-- **Winner**: FewShot (最高奖励 + 最快生成时间 15.5s)
-- **所有成功策略**: 100% 代码有效性
-- **Critic**: 最快收敛 (Iter 2)
-- **RolePlay**: 代码与评估器接口不兼容
+| 排名 | 架构 | 类型 | 准确率 | FLOPs |
+|------|------|------|--------|-------|
+| 1 | **FiLM** | 人工设计 | **~46%** | 6.29M |
+| 2 | arch_017 | NAS | ~33% | 13.20M |
+| 3 | arch_021 | NAS | ~21% | 13.63M |
 
-### 实验报告
+**启示**: 特征调制(FiLM)机制在复杂多学科问题上表现更稳健。
 
-- [PHASE1_REPORT.md](docs/experiments/PHASE1_REPORT.md) - 完整实验报告
-- [PHASE1_RESULTS_SUMMARY.json](docs/experiments/PHASE1_RESULTS_SUMMARY.json) - 结构化结果
+### 3. NAS效率问题
 
----
+| 指标 | NAS平均 | 人工设计平均 | 差距 |
+|------|---------|-------------|------|
+| FLOPs | ~50M | ~8M | **6.5×** |
+| 延迟 | ~2ms | ~0.3ms | **6.7×** |
 
-## ✅ Phase 2.5 评估器验证完成
-
-### 验证结果
-
-| 验证项 | 结果 | 关键指标 |
-|--------|------|----------|
-| **数据集选择** (2.5.1) | **AI2D** | 准确率 0.25 (最高) |
-| **训练深度校准** (2.5.2) | **3 epochs** | 时间 2.7s (最快) |
-| **架构公平性** (2.5.3) | **EXCELLENT** | std=0.056 (< 0.1) |
-
-### 验证后的评估器配置
-
-```python
-verified_evaluator_config = {
-    'dataset': 'ai2d',              # 最优数据集
-    'train_epochs': 3,              # 最优训练深度
-    'num_shots': 16,                # few-shot样本数
-    'batch_size': 4,                # 批大小
-    'backbone': 'clip-vit-l-14',    # 预训练骨干
-}
-```
-
-### 实验报告
-
-- [PHASE_2_5_1_REPORT.md](docs/experiments/PHASE_2_5_1_REPORT.md) - 数据集选择实验
-- [PHASE_2_5_2_REPORT.md](docs/experiments/PHASE_2_5_2_REPORT.md) - 训练深度校准实验
-- [PHASE_2_5_3_REPORT.md](docs/experiments/PHASE_2_5_3_REPORT.md) - 架构公平性测试
-
----
-
-## ✅ Phase 3: 架构发现完成
-
-### 实验结果
-
-| 指标 | 结果 |
-|------|------|
-| **Iterations** | 100/100 |
-| **Total Time** | 31.5 min |
-| **Best Reward** | **0.952** 🎉 |
-| **Top Architectures** | 26 (reward > 0.75) |
-| **vs Phase 1** | +9.0% improvement |
-
-### Top 5 Discovered Architectures
-
-| Rank | Architecture | Reward | Iteration |
-|------|--------------|--------|-----------|
-| 🥇 | **arch_024** | **0.952** | 82 |
-| 🥈 | arch_019 | 0.933 | 69 |
-| 🥉 | arch_021 | 0.933 | 72 |
-| 4 | arch_012 | 0.906 | 30 |
-| 5 | arch_025 | 0.899 | 83 |
-
-### 实验报告
-
-- [PHASE3_DISCOVERY_RESULTS.md](docs/experiments/PHASE3_DISCOVERY_RESULTS.md) - 完整发现结果
+**启示**: 当前NAS搜索空间缺乏有效的效率约束。
 
 ---
 
 ## 快速开始
 
-### 环境设置
+### 运行完整评估 (E1)
 
 ```bash
-# 安装依赖
-pip install torch torchvision transformers datasets pillow numpy pandas
+cd expv2
 
-# 验证环境
-cd experiment/phase0_validation
-python run_val.py
+# 快速测试 (10 epochs)
+python E1_main_evaluation/scripts/run_E1.py --mode quick --gpu 0
+
+# 完整评估 (100 epochs, 3 runs)
+bash E1_main_evaluation/scripts/run_on_server.sh 2
 ```
 
-### 运行 Phase 1 Prompt对比实验
+### 跨数据集测试 (E2)
 
 ```bash
-cd experiment/phase1_prompts
+# 运行所有数据集
+python E2_cross_dataset/scripts/run_E2.py --dataset all --gpu 0
 
-# 运行完整对比实验 (所有5个策略)
-python run_phase1.py --run-name phase1_full --iterations 20 --gpu 2
-
-# 运行单个策略
-python run_phase1.py --strategy FewShot --iterations 20 --gpu 2
-python run_phase1.py --strategy CoT --iterations 20 --gpu 2
-python run_phase1.py --strategy Critic --iterations 20 --gpu 2
+# 单独运行MMMU
+python E2_cross_dataset/scripts/run_E2.py --dataset mmmu --gpu 0
 ```
 
-### 运行 Phase 3 架构发现实验
+### 查看结果
 
 ```bash
-cd experiment/phase3_discovery
+# E1详细报告
+cat expv2/E1_main_evaluation/results/E1_DETAILED_REPORT.md
 
-# 快速测试 (10 iterations)
-python run_phase3.py --run-name test_run --iterations 10
-
-# 标准架构发现 (100 iterations, ~8-10小时)
-python run_phase3.py --run-name discovery_v1 --iterations 100 --gpu 2
-
-# 在服务器上运行
-bash run_on_server.sh
-```
-
-### 运行 Phase 2.5 验证实验
-
-```bash
-# 数据集选择 (2.5.1)
-python experiment/phase2_5/run_2_5_1_dataset_selection.py
-
-# 训练深度校准 (2.5.2)
-python experiment/phase2_5/run_2_5_2_training_depth.py
-
-# 架构公平性测试 (2.5.3)
-python experiment/phase2_5/run_2_5_3_architecture_fairness.py
+# 完整汇总
+cat EXPERIMENTS_SUMMARY.md
 ```
 
 ---
 
-## 特性
+## 实验状态
 
-- **理论修正**: GDPO方差爆炸保护、PPO Critic-Free模式
-- **多目标优化**: 准确率、效率、编译成功率
-- **OOM防护**: 自动batch size调整
-- **秩相关验证**: Kendall's tau验证代理评估
-- **真实数据评估**: RealDataFewShotEvaluator (AI2D, 3 epochs)
+| 实验 | 状态 | 关键结果 |
+|------|------|----------|
+| Phase 1 (Prompt) | ✅ 完成 | FewShot最佳 (0.873) |
+| Phase 2.5 (验证器) | ✅ 完成 | AI2D+3epochs配置 |
+| Phase 3 (发现) | ✅ 完成 | 26架构, Best: 0.952 |
+| **E1 (完整评估)** | ✅ **完成** | **AI2D过于简单** |
+| **E2 (跨数据集)** | ✅ **完成** | **人工设计 > NAS** |
+| E3 (帕累托分析) | 📋 待开始 | - |
+
+---
+
+## 论文贡献重新定位
+
+### 原计划 vs 实际发现
+
+| 原计划 | 实际发现 |
+|--------|----------|
+| NAS发现优于人工设计 | 人工设计在复杂任务上更鲁棒 |
+| AI2D是合适的评估基准 | AI2D过于简单，需要难数据集 |
+| NAS架构更高效 | NAS效率是人工设计的1/6.5 |
+
+### 调整后贡献
+
+1. **评估器设计洞察**: 揭示了简单评估器(AI2D)与复杂任务性能之间的脱节
+2. **系统性对比框架**: 提供了完整的NAS vs 人工设计对比方法论
+3. **人工设计价值验证**: 证明了专家知识在复杂多模态任务上的持续重要性
+4. **搜索空间分析**: 识别了当前NAS搜索空间的效率缺陷
 
 ---
 
@@ -230,5 +210,6 @@ https://github.com/Starryyu77/AutoFusion_Advanced
 
 ---
 
-*Last Updated: 2026-02-13*
-*Status: Phase 1 & 2.5 Complete ✅, Phase 3 Ready ⏳*
+*Last Updated: 2026-02-21*
+*Status: Phase 1-3 & E1-E2 Complete ✅*
+*Key Finding: Human-designed architectures outperform NAS on complex tasks*
