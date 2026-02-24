@@ -1,0 +1,45 @@
+# Phase 1: Prompt Strategy Comparison
+# 提示词策略对比实验配置
+
+experiment_name: "phase1_prompt_comparison"
+description: "Compare 5 prompt strategies for architecture generation"
+
+# 对比的策略
+strategies:
+  - CoT           # Chain-of-Thought
+  - FewShot       # Few-Shot Learning
+  - Critic        # Self-Critic
+  - Shape         # Shape Constraints
+  - RolePlay      # Role Playing
+
+# 实验参数
+iterations: 20              # 每个策略运行20次
+num_samples_per_iter: 1     # 每次生成1个样本
+
+# LLM配置
+llm:
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+  top_p: 0.95
+
+# 评估器配置 (Phase 1使用快速评估)
+evaluator:
+  type: "real_data"
+  dataset: "ai2d"
+  num_shots: 16
+  train_epochs: 3
+  batch_size: 4
+  backbone: "clip-vit-l-14"
+
+# 搜索空间
+search_space:
+  type: ["attention", "bilinear", "mlp"]
+  hidden_dim: [256, 512, 768]
+  num_layers: [2, 4, 6]
+  dropout: [0.1, 0.2, 0.3]
+
+# 输出
+output_dir: "results/phase1"
+save_prompts: true          # 保存所有prompt用于分析
+save_generated_code: true   # 保存生成的代码

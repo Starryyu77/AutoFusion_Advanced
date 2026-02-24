@@ -1,0 +1,93 @@
+# Phase 3: Architecture Discovery
+# 架构发现实验配置
+
+experiment_name: "phase3_architecture_discovery"
+description: "Discover novel multimodal fusion architectures using winning configuration"
+
+# 获胜配置 (来自Phase 1 & 2)
+winning_config:
+  generator: "FewShot"        # Phase 1 Winner
+  controller: "Evolution"     # Phase 2.1 Winner
+  evaluator: "real_data"      # Phase 2.5 Verified
+
+# 实验参数
+iterations: 100             # 搜索迭代次数
+population_size: 50         # 进化算法种群大小
+
+# LLM配置
+llm:
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+  api_key: null             # 从环境变量DEEPSEEK_API_KEY读取
+  base_url: "https://api.deepseek.com/v1"
+
+# 评估器配置 (使用验证后的配置)
+evaluator:
+  type: "real_data"
+  dataset: "ai2d"           # Phase 2.5.1: AI2D最优
+  num_shots: 16
+  train_epochs: 3           # Phase 2.5.2: 3epochs最优
+  batch_size: 4
+  backbone: "clip-vit-l-14"
+  device: "cuda"
+
+# 扩展搜索空间
+search_space:
+  # 融合类型
+  type: ["attention", "bilinear", "mlp", "transformer", "gated", "cross_modal", "hybrid"]
+  fusion_type: ["attention", "bilinear", "mlp", "transformer", "gated", "cross_modal", "hybrid"]
+
+  # 架构组件
+  num_layers: {type: "int", low: 1, high: 6}
+  num_fusion_layers: {type: "int", low: 1, high: 6}
+  hidden_dim: {type: "int", low: 128, high: 1024, step: 64}
+  num_heads: {type: "int", low: 2, high: 16, step: 2}
+
+  # 激活与归一化
+  activation: ["gelu", "relu", "silu", "swish", "mish"]
+  normalization: ["layer_norm", "batch_norm", "instance_norm", "none"]
+
+  # 正则化
+  dropout: {type: "float", low: 0.0, high: 0.5, step: 0.05}
+  drop_path_rate: {type: "float", low: 0.0, high: 0.3, step: 0.05}
+
+  # 特殊组件
+  use_residual: [true, false]
+  use_gating: [true, false]
+  use_position_embedding: [true, false]
+  use_layer_scale: [true, false]
+
+  # 连接模式
+  connectivity: ["serial", "parallel", "residual_dense", "densenet_style"]
+
+# Controller配置 (Evolution)
+controller:
+  type: "evolution"
+  population_size: 50
+  mutation_rate: 0.3
+  crossover_rate: 0.5
+  selection_method: "tournament"
+
+# Reward配置
+reward:
+  weights:
+    accuracy: 1.0
+    efficiency: 0.5
+    compile_success: 2.0
+    complexity: 0.0
+  use_exponential_sharpening: true
+  baseline: 2.5
+  alpha: 3.0
+
+# 输出配置
+output:
+  save_threshold: 0.75          # 保存reward>0.75的架构
+  save_top_k: 10                # 额外保存Top 10
+  checkpoint_interval: 10       # 每10iter保存checkpoint
+  output_dir: "results/phase3"
+
+# 日志
+logging:
+  level: "INFO"
+  save_logs: true

@@ -1,0 +1,134 @@
+# Phase 4: Optimized Architecture Discovery
+# 优化版架构发现 (改进版)
+
+experiment_name: "phase4_optimized_discovery"
+description: "Optimized NAS with better evaluator and efficiency constraints"
+
+# 核心改进
+improvements:
+  - "harder_evaluator"      # 使用MMMU+10ep代替AI2D+3ep
+  - "efficiency_constraint" # 严格FLOPs约束
+  - "better_reward"         # 重新平衡reward权重
+
+# 实验参数
+iterations: 200             # 更多迭代
+population_size: 50
+
+# 两阶段搜索策略
+search_strategy:
+  stage1:
+    name: "exploration"
+    iterations: 150
+    config: "fast"          # 快速探索
+  stage2:
+    name: "refinement"
+    iterations: 50
+    config: "deep"          # 精细优化top architectures
+
+# LLM配置
+llm:
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 4096
+
+# 改进的评估器配置
+evaluator:
+  type: "real_data"
+  # 关键改进1: 使用更难数据集
+  dataset: "mmmu"           # 改为MMMU
+  num_shots: 32             # 增加样本数
+  train_epochs: 10          # 增加训练深度
+  batch_size: 8
+  backbone: "clip-vit-l-14"
+  device: "cuda"
+  # 早停配置
+  early_stopping:
+    enabled: true
+    patience: 3             # 3epoch不提升即停
+    min_delta: 0.01
+  # 时间限制
+  max_training_time: 300    # 5分钟上限
+
+# 改进的搜索空间 (增加效率导向选项)
+search_space:
+  # 融合类型: 增加高效选项
+  fusion_type:
+    - "attention"
+    - "bilinear"
+    - "mlp"
+    - "gated"
+    - "film"                    # 新增: FiLM风格
+    - "lightweight_attention"   # 新增: 轻量注意力
+    - "cross_modal_efficient"   # 新增: 高效跨模态
+
+  # 限制网络深度 (原为6)
+  num_layers: {type: "int", low: 1, high: 4}
+  num_fusion_layers: {type: "int", low: 1, high: 4}
+
+  # 限制隐藏维度 (原为1024)
+  hidden_dim: {type: "int", low: 128, high: 512, step: 64}
+
+  num_heads: {type: "int", low: 2, high: 8, step: 2}
+
+  activation: ["gelu", "relu", "silu"]
+  normalization: ["layer_norm", "batch_norm"]
+
+  dropout: {type: "float", low: 0.0, high: 0.3, step: 0.05}
+
+  # 强制残差连接 (提升效率)
+  use_residual: [true]      # 强制True
+  use_gating: [true, false]
+
+  # 新增: 剪枝选项
+  pruning_ratio: {type: "float", low: 0.0, high: 0.5}
+
+# 改进的Reward配置
+reward:
+  # 关键改进2: 重新平衡权重
+  weights:
+    accuracy: 1.0
+    efficiency: 1.5           # 提升效率权重
+    compile_success: 2.0
+    complexity: 0.3
+
+  # 关键改进3: FLOPs硬约束
+  flops_constraint:
+    enabled: true
+    max_flops: 10000000       # 10M FLOPs上限 (FiLM=6.29M)
+    reject_if_exceed: true    # 超出直接reject
+
+  # FLOPs指数惩罚
+  flops_penalty:
+    type: "exponential"
+    scale: 20000000           # 20M
+    formula: "reward * exp(-flops/scale)"
+
+  # 帕累托优化选项
+  use_pareto: false           # 可选开启
+
+# Controller配置
+controller:
+  type: "evolution"
+  population_size: 50
+  mutation_rate: 0.3
+  crossover_rate: 0.5
+  # 精英保留
+  elitism: 0.1                # 保留Top 10%
+
+# 输出配置
+output:
+  save_threshold: 0.75
+  save_top_k: 20              # 保存更多候选
+  checkpoint_interval: 10
+  output_dir: "results/phase4"
+
+# 成功标准 (用于自动判断)
+success_criteria:
+  min_accuracy: 0.50          # MMMU > 50% (超越FiLM的46%)
+  max_flops: 6290000          # < 6.29M (FiLM水平)
+  min_architectures: 5        # 至少5个满足条件
+
+logging:
+  level: "INFO"
+  save_logs: true
+  log_interval: 1
