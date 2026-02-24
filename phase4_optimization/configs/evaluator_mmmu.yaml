@@ -1,0 +1,31 @@
+# Phase 4: MMMU Evaluator Configuration
+# This is the target configuration for Phase 4 optimization experiments
+
+# Evaluator Configuration
+evaluator:
+  type: "improved_real_data"
+  dataset: "mmmu"              # Target dataset (more challenging than AI2D)
+  num_shots: 32                # Increased from 16 for better learning
+  train_epochs: 10             # Increased from 3 for deeper training
+  batch_size: 8                # Larger batch size for stability
+  backbone: "clip-vit-l-14"    # Same backbone as before
+  data_dir: "./expv2/data"     # Data directory
+
+  # Early stopping configuration
+  early_stopping:
+    enabled: true
+    patience: 3                # Stop if no improvement for 3 epochs
+    min_delta: 0.005           # 0.5% improvement threshold
+
+  # Time limit (important for NAS efficiency)
+  max_training_time: 300       # 5 minutes maximum per architecture
+
+  # Validation frequency
+  eval_every_n_epochs: 1       # Validate every epoch for early stopping
+
+# Why this configuration?
+# - MMMU is harder than AI2D, so good architectures will stand out
+# - 32 shots provides more training data for better convergence
+# - 10 epochs allows sufficient learning without excessive time
+# - Early stopping prevents wasting time on poor architectures
+# - 5-minute limit ensures reasonable total search time

@@ -1,0 +1,207 @@
+# Phase 4: Optimization Experiment Configuration
+# Full configuration for architecture search with improved evaluator and reward
+
+# =============================================================================
+# Experiment Settings
+# =============================================================================
+experiment:
+  name: "phase4_optimization"
+  description: "Phase 4: Improved NAS with MMMU evaluator and constrained reward"
+  version: "1.0"
+  seed: 42
+
+# =============================================================================
+# Evaluator Configuration (Task 1: 改进评估器)
+# =============================================================================
+evaluator:
+  type: "improved_real_data"
+
+  # Dataset settings - use MMMU for challenging evaluation
+  dataset: "mmmu"
+  num_shots: 32
+  train_epochs: 10
+  batch_size: 8
+  backbone: "clip-vit-l-14"
+  data_dir: "./expv2/data"
+
+  # Early stopping - validate every epoch
+  early_stopping:
+    enabled: true
+    patience: 3
+    min_delta: 0.005  # 0.5% improvement threshold
+
+  # Time limit per architecture (seconds)
+  max_training_time: 300  # 5 minutes
+
+  # Validation frequency
+  eval_every_n_epochs: 1
+
+# =============================================================================
+# Reward Configuration (Task 2: 改进Reward函数)
+# =============================================================================
+reward:
+  type: "constrained"
+
+  # Component weights - efficiency increased from 0.5 to 1.5
+  weights:
+    accuracy: 1.0
+    efficiency: 1.5      # Increased to prioritize efficiency
+    compile_success: 2.0
+    complexity: 0.3
+
+  # FLOPs hard constraint
+  flops_constraint:
+    enabled: true
+    max_flops: 10000000  # 10M FLOPs limit (FiLM is 6.29M)
+    reject_if_exceed: true  # Hard reject architectures > 10M FLOPs
+
+  # Exponential penalty for high FLOPs (soft constraint)
+  flops_penalty:
+    type: "exponential"
+    scale: 20000000      # 20M scale for penalty
+
+  # Label smoothing for compile success
+  label_smoothing: true
+
+# =============================================================================
+# Search Algorithm Configuration
+# =============================================================================
+controller:
+  type: "evolution"  # Evolution worked best in Phase 2.1
+
+  # Population settings
+  population_size: 50
+  num_iterations: 200
+
+  # Selection
+  selection_method: "tournament"
+  tournament_size: 5
+  elitism_ratio: 0.1  # Keep top 10%
+
+  # Mutation
+  mutation_rate: 0.3
+  mutation_strength: 0.2
+
+  # Crossover
+  crossover_rate: 0.5
+
+# =============================================================================
+# Generator Configuration
+# =============================================================================
+generator:
+  type: "cot"  # Chain-of-thought
+
+  # LLM settings
+  model: "deepseek-chat"
+  temperature: 0.7
+  max_tokens: 2000
+
+  # Prompt settings
+  include_efficiency_hints: true  # Add efficiency guidance to prompts
+  include_flops_constraint: true  # Mention 10M FLOPs limit in prompts
+
+# =============================================================================
+# Search Space Configuration (Task 3: 改进搜索空间)
+# =============================================================================
+search_space:
+  # Fusion types - include efficient options
+  fusion_type:
+    - "attention"
+    - "bilinear"
+    - "mlp"
+    - "gated"
+    - "film"                    # Add FiLM-style fusion
+    - "lightweight_attention"    # Light attention variant
+    - "cross_modal_efficient"    # Efficient cross-modal
+
+  # Network depth - reduced max from 6 to 4
+  num_layers:
+    type: "int"
+    low: 1
+    high: 4
+
+  # Hidden dimension - reduced max from 1024 to 512
+  hidden_dim:
+    type: "int"
+    low: 128
+    high: 512
+    step: 64
+
+  # Force residual connections for efficiency
+  use_residual:
+    - true  # Always use residual
+
+  # Add pruning option
+  pruning_ratio:
+    type: "float"
+    low: 0.0
+    high: 0.5
+
+  # Attention heads (if using attention)
+  num_heads:
+    type: "int"
+    low: 1
+    high: 8
+
+  # Dropout for regularization
+  dropout:
+    type: "float"
+    low: 0.0
+    high: 0.3
+
+# =============================================================================
+# Logging and Checkpointing
+# =============================================================================
+logging:
+  log_dir: "./phase4_optimization/results/logs"
+  log_level: "INFO"
+  log_interval: 10  # Log every 10 iterations
+
+  # Metrics to track
+  track_metrics:
+    - "reward"
+    - "accuracy"
+    - "flops"
+    - "params"
+    - "efficiency"
+    - "compile_success"
+    - "rejection_rate"
+
+checkpoint:
+  save_dir: "./phase4_optimization/results/checkpoints"
+  save_interval: 50  # Save every 50 iterations
+  keep_top_k: 20     # Keep top 20 architectures
+
+# =============================================================================
+# Output Configuration
+# =============================================================================
+output:
+  results_dir: "./phase4_optimization/results/discovery"
+  save_architectures: true
+  save_code: true
+  save_evaluations: true
+
+# =============================================================================
+# Phase 4 Specific Settings
+# =============================================================================
+phase4:
+  # Target metrics (vs FiLM baseline)
+  target_accuracy: 0.46  # Match or exceed FiLM
+  target_flops: 6290000  # 6.29M FLOPs (FiLM level)
+
+  # Evaluation strategy
+  evaluation_strategy: "strict"  # Use early stopping and time limits
+
+  # Rejection tracking
+  track_rejections: true  # Log why architectures are rejected
+
+  # Progress milestones
+  milestones:
+    - iteration: 50
+      action: "evaluate_top_10"
+    - iteration: 100
+      action: "evaluate_top_10"
+    - iteration: 150
+      action: "evaluate_top_10"
+    - iteration: 200
+      action: "final_evaluation"
