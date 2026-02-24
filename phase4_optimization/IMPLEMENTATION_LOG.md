@@ -29,17 +29,61 @@ phase4_optimization/
 
 ---
 
-## Step 2: 复制并修改Evaluator
+## Step 2: 复制并修改Evaluator ✅
 
 ### 任务描述
 复制 `experiment/evaluators/real_data_evaluator.py` 到 `phase4_optimization/src/evaluator_v2.py`，并添加早停和时间限制功能。
 
 ### 修改清单
-- [ ] 添加早停逻辑 (patience=3, min_delta=0.01)
-- [ ] 添加时间限制 (max_time=300s)
-- [ ] 添加配置支持 (通过config传入参数)
+- [x] 添加早停逻辑 (patience=3, min_delta=0.01)
+- [x] 添加时间限制 (max_time=300s)
+- [x] 添加配置支持 (通过config传入参数)
 
-### 状态: ⬜ 待开始
+### 关键代码修改
+```python
+# 在 _few_shot_train 方法中添加:
+
+# Phase 4: Add early stopping and time limit
+early_stopping_config = self.config.get('early_stopping', {})
+use_early_stopping = early_stopping_config.get('enabled', False)
+patience = early_stopping_config.get('patience', 3)
+min_delta = early_stopping_config.get('min_delta', 0.01)
+
+max_training_time = self.config.get('max_training_time', None)
+start_time = time.time() if max_training_time else None
+
+# 在每个epoch后检查:
+# 1. 时间限制
+if max_training_time and start_time:
+    elapsed = time.time() - start_time
+    if elapsed > max_training_time:
+        break
+
+# 2. 早停
+if use_early_stopping:
+    if epoch_acc > best_val_acc_for_early_stop + min_delta:
+        best_val_acc_for_early_stop = epoch_acc
+        epochs_no_improve = 0
+    else:
+        epochs_no_improve += 1
+
+    if epochs_no_improve >= patience:
+        break
+```
+
+### 测试结果
+```
+✓ Early stopping configuration test passed
+✓ Time limit configuration test passed
+✓ Can import MultiObjectiveReward
+```
+
+### 状态: 已完成 ✅
+
+### 备注
+- 保存config为实例变量以支持配置读取
+- 实际epoch数通过 actual_epochs = epoch + 1 计算
+- 所有测试通过
 
 ---
 
