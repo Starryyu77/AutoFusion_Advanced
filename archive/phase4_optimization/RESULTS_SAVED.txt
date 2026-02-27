@@ -1,0 +1,69 @@
+# Phase 4 Results - Save Confirmation
+# Date: 2026-02-24
+
+================================================================================
+RESULTS SAVED SUCCESSFULLY
+================================================================================
+
+Source: ntu-gpu43:/usr1/home/s125mdg43_10/AutoFusion_Advanced/phase4_optimization/results/discovery_v3/
+Destination: /Users/starryyu/2026/Auto-Fusion-Advanced/phase4_optimization/results_cluster/discovery_v3/
+
+================================================================================
+SAVED FILES
+================================================================================
+
+JSON Results (8 files, ~266KB total):
+  ✓ results_final.json          (50KB) - Complete final results
+  ✓ results_iter_10.json        (17KB) - Checkpoint at iteration 10
+  ✓ results_iter_20.json        (33KB) - Checkpoint at iteration 20
+  ✓ results_iter_30.json        (50KB) - Checkpoint at iteration 30
+  ✓ top_20_final.json           (33KB) - Top 20 architectures
+  ✓ top_20_iter_10.json         (17KB) - Top 20 at iter 10
+  ✓ top_20_iter_20.json         (33KB) - Top 20 at iter 20
+  ✓ top_20_iter_30.json         (33KB) - Top 20 at iter 30
+
+Logs:
+  ✓ logs/phase4_search_*.log    - Detailed execution logs
+
+Reports (committed to git):
+  ✓ RESULTS_SUMMARY.md          - Human-readable summary
+  ✓ IMPLEMENTATION_LOG.md       - Implementation details
+  ✓ DEPLOY_TO_CLUSTER.md        - Deployment guide
+
+Code (committed to git):
+  ✓ run_phase4_search.py        - Main experiment script
+  ✓ src/evaluator_v2_improved.py - Improved evaluator
+  ✓ src/reward_v2.py            - Constrained reward
+  ✓ configs/*.yaml              - Configuration files
+  ✓ scripts/submit_phase4.sh    - Slurm submission script
+
+================================================================================
+KEY RESULTS
+================================================================================
+
+Experiment: Phase 4 Optimized Architecture Search
+Iterations: 30
+Status: COMPLETE ✅
+
+Best Architecture:
+  - Type: Bilinear Fusion
+  - Hidden Dim: 192
+  - Accuracy: 50.0% (MMMU 32-shot)
+  - FLOPs: 7,936
+  - vs FiLM: +4% accuracy, 793x fewer FLOPs
+
+Architectures beating FiLM: 2
+
+================================================================================
+VERIFICATION
+================================================================================
+
+To verify results:
+  cat phase4_optimization/results_cluster/discovery_v3/results_final.json | python3 -m json.tool | head -50
+
+To view top architecture:
+  cat phase4_optimization/results_cluster/discovery_v3/top_20_final.json | python3 -m json.tool | head -100
+
+Git commit: c8b5ec3
+
+================================================================================
