@@ -1,0 +1,56 @@
+# 实验 4: Kimi K2.5 (改进版)
+# =============================
+
+experiment:
+  name: "exp_kimi_v2"
+  version: "2.0"
+  seed: 42
+  max_iterations: 100
+  save_interval: 10
+  output_dir: "./results/v2/exp_kimi"
+
+# 阿里云百炼 - Kimi K2.5
+llm:
+  type: "aliyun"
+  model: "kimi-k2.5"
+  api_key: "${ALIYUN_API_KEY}"
+  temperature: 0.7
+  max_tokens: 2048
+
+# 改进配置
+improvements:
+  use_template_mode: true
+  use_error_feedback: true
+  max_retries: 3
+  use_few_shot: true
+
+# 控制器配置
+controller:
+  temperature: 0.7
+  strategy_switch:
+    explore: 0.3
+    exploit: 0.4
+    refine: 0.3
+
+# 约束条件
+constraints:
+  max_flops: 10000000
+  max_params: 50000000
+  target_accuracy: 0.5
+  min_accuracy: 0.2
+
+# 评估器配置
+evaluator:
+  dataset: "mmmu"
+  num_shots: 64
+  train_epochs: 10
+  batch_size: 8
+  early_stopping: true
+  max_time: 300
+
+# 奖励函数
+reward:
+  weights:
+    accuracy: 1.0
+    efficiency: 1.5
+    compile_success: 2.0

@@ -1,0 +1,57 @@
+# 实验 1: DeepSeek V3.2 (改进版)
+# ================================
+
+experiment:
+  name: "exp_deepseek_v3_v2"
+  version: "2.0"
+  seed: 42
+  max_iterations: 100
+  save_interval: 10
+  output_dir: "./results/v2/exp_deepseek_v3"
+
+# 阿里云百炼 - DeepSeek V3
+llm:
+  type: "aliyun"
+  model: "deepseek-v3"
+  api_key: "${ALIYUN_API_KEY}"
+  temperature: 0.7
+  max_tokens: 2048
+
+# 改进配置
+improvements:
+  use_template_mode: true
+  use_error_feedback: true
+  max_retries: 3
+  use_few_shot: true
+
+# 控制器配置
+controller:
+  temperature: 0.7
+  strategy_switch:
+    explore: 0.3      # 前 30% 迭代
+    exploit: 0.4      # 中间 40% 迭代
+    refine: 0.3       # 后 30% 迭代
+
+# 约束条件
+constraints:
+  max_flops: 10000000      # 10M FLOPs
+  max_params: 50000000     # 50M 参数
+  target_accuracy: 0.5     # 50% 目标准确率
+  min_accuracy: 0.2        # 最低 20% 准确率
+
+# 评估器配置
+evaluator:
+  dataset: "mmmu"
+  num_shots: 64
+  train_epochs: 10
+  batch_size: 8
+  early_stopping: true
+  max_time: 300
+
+# 奖励函数
+reward:
+  weights:
+    accuracy: 1.0
+    efficiency: 1.5
+    compile_success: 2.0
+  penalty_type: "exponential"
