@@ -1,0 +1,112 @@
+{
+  "experiment_version": "Phase 5.5",
+  "experiment_date": "2026-03-01",
+  "improvements": [
+    "architecture_templates",
+    "error_feedback",
+    "prompt_v2"
+  ],
+  "models": {
+    "glm5": {
+      "name": "GLM-5",
+      "status": "completed",
+      "iterations": 100,
+      "compile_success_rate": 100.0,
+      "compile_success_count": 100,
+      "compile_fail_count": 0,
+      "best_reward": 3.795,
+      "best_architecture": {
+        "type": "mlp",
+        "params": {
+          "hidden_dim": 64,
+          "num_layers": 1
+        }
+      },
+      "total_time_minutes": 124.0,
+      "rank": 3
+    },
+    "kimi": {
+      "name": "Kimi K2.5",
+      "status": "completed",
+      "iterations": 100,
+      "compile_success_rate": 100.0,
+      "compile_success_count": 100,
+      "compile_fail_count": 0,
+      "best_reward": 3.913,
+      "best_architecture": {
+        "type": "hybrid",
+        "params": {
+          "hidden_dim": 32,
+          "num_heads": 1
+        }
+      },
+      "total_time_minutes": 39.6,
+      "rank": 1
+    },
+    "qwen_max": {
+      "name": "Qwen-Max",
+      "status": "completed",
+      "iterations": 100,
+      "compile_success_rate": 100.0,
+      "compile_success_count": 100,
+      "compile_fail_count": 0,
+      "best_reward": 3.913,
+      "best_architecture": {
+        "type": "hybrid",
+        "params": {
+          "hidden_dim": 64,
+          "num_heads": 2
+        }
+      },
+      "total_time_minutes": 40.3,
+      "rank": 1
+    }
+  },
+  "comparison_with_phase5": {
+    "best_compile_success_rate": {
+      "phase5": 24.0,
+      "phase5.5": 100.0,
+      "improvement": 76.0
+    },
+    "best_reward": {
+      "phase5": 2.796,
+      "phase5.5": 3.913,
+      "improvement": 1.117,
+      "improvement_percent": 39.95
+    },
+    "total_valid_architectures": {
+      "phase5": 12,
+      "phase5.5": 300,
+      "improvement": 288
+    }
+  },
+  "key_findings": [
+    "Template mode achieved 100% compile success rate across all models",
+    "Hybrid architecture (attention + gating) achieved highest reward (3.913)",
+    "Kimi K2.5 and Qwen-Max performed best with ~40 minutes completion time",
+    "Simple MLP architecture also effective with reward 3.795",
+    "All models successfully generated valid PyTorch code using templates"
+  ],
+  "best_architecture_summary": {
+    "type": "hybrid",
+    "description": "Attention + Gating fusion mechanism",
+    "characteristics": [
+      "Cross-modal attention for fine-grained interaction",
+      "Gating mechanism for adaptive fusion weights",
+      "Moderate complexity (hidden_dim=32-64)",
+      "Balanced efficiency and performance"
+    ]
+  },
+  "recommendations": [
+    "Increase iterations to 200-500 for potentially better architectures",
+    "Adjust evaluation config: increase shots from 64 to 128",
+    "Analyze failed cases to optimize template parameter ranges",
+    "Consider multi-task evaluation (MMMU + VSR + AI2D)",
+    "Fine-tune LLM on architecture code generation"
+  ],
+  "file_locations": {
+    "server": "/usr1/home/s125mdg43_10/AutoFusion_Advanced/phase5_llm_rl/results/v2/",
+    "local": "phase5_llm_rl/results/v2/",
+    "report": "docs/experiments/PHASE5.5_FINAL_REPORT.md"
+  }
+}
