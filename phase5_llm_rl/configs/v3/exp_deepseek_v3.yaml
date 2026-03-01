@@ -1,0 +1,43 @@
+# DeepSeek V3.2 重跑 (Phase 5.6)
+# 100 iterations, 128 shots, 15 epochs
+
+experiment:
+  name: exp_deepseek_v3
+  max_iterations: 100
+  save_interval: 10
+  output_dir: ./results/v3/exp_deepseek
+
+llm:
+  type: aliyun
+  model: deepseek-v3
+  api_key: ${ALIYUN_API_KEY}
+  temperature: 0.7
+  max_tokens: 2048
+
+improvements:
+  use_template_mode: true
+  use_error_feedback: true
+  max_retries: 3
+
+evaluator:
+  dataset: mmmu
+  num_shots: 128
+  train_epochs: 15
+  batch_size: 8
+  early_stopping:
+    enabled: true
+    patience: 5
+    min_delta: 0.005
+  max_training_time: 600
+
+reward:
+  weights:
+    accuracy: 1.0
+    efficiency: 1.5
+    compile_success: 2.0
+
+constraints:
+  constraints:
+    max_flops: 10000000
+    max_params: 50000000
+    target_accuracy: 0.5
