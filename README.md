@@ -79,7 +79,48 @@ bash scripts/run_all_models.sh
 
 ## 实验结果
 
-### Phase 5: LLM-Driven RL Loop
+### Phase 5.5: Template Mode (Completed ✅)
+
+**突破**: 编译成功率从 24% 提升到 **100%**
+
+| 模型 | Iterations | Compile Rate | Best Reward | Architecture | Time |
+|------|-----------|--------------|-------------|--------------|------|
+| **GLM-5** | 100/100 | **100%** | 3.795 | MLP (hidden=64) | 124m |
+| **Kimi-K2.5** | 100/100 | **100%** | **3.913** | Hybrid (hidden=32) | 39.6m |
+| **Qwen-Max** | 100/100 | **100%** | **3.913** | Hybrid (hidden=64) | 40.3m |
+
+**最佳架构 (Kimi/Hybrid)**:
+```python
+{
+    'type': 'hybrid',           # Attention + Gating
+    'hidden_dim': 32,
+    'num_heads': 1,
+    'reward': 3.913,
+    'flops': '5M',
+    'accuracy': '~40%'
+}
+```
+
+### Phase 5.6: Extended Search (Kimi Complete ✅)
+
+| 模型 | Iterations | Status | Best Reward | Time |
+|------|-----------|--------|-------------|------|
+| **Kimi-K2.5** | **200/200** | ✅ Complete | **3.913** | 142m |
+| Qwen-Max | 114/200 | ⚠️ Interrupted | - | API Timeout |
+
+**关键发现**: 200 iterations 收敛于与 100 iterations 相同的 Reward (3.913)
+
+### Baseline Comparison: LLM vs Human-Designed
+
+| Metric | FiLM (Human) | Kimi/Hybrid (LLM) | Winner |
+|--------|-------------|-------------------|--------|
+| **MMMU Accuracy** | **46%** | ~40% | Human |
+| **FLOPs** | 6.29M | **5.0M** | LLM (20% less) |
+| **Parameters** | ~5M | **~3M** | LLM |
+| **Development Time** | Weeks/Months | **142 min** | LLM |
+| **Compile Success** | N/A | **100%** | LLM |
+
+### Phase 5 (Legacy)
 
 | 模型 | Best Reward | 架构类型 | 编译成功率 |
 |------|-------------|----------|-----------|
@@ -87,16 +128,6 @@ bash scripts/run_all_models.sh
 | DeepSeek-V3 | 2.796 | attention | **24%** |
 | Kimi-K2.5 | 2.539 | attention | 2% |
 | Qwen-Max | 0.500 | - | 0% |
-
-### 最佳架构 (GLM-5)
-
-```python
-{
-    'type': 'gated',
-    'hidden_dim': 128,
-    'num_layers': 2
-}
-```
 
 ## 核心组件
 
@@ -141,9 +172,26 @@ prompt = prompt_builder.build(
 
 ## 文档
 
+- [Phase 5.5 最终报告](docs/experiments/PHASE5.5_FINAL_REPORT.md) - 详细实验结果
+- [Phase 5.6 Baseline对比](docs/experiments/PHASE5.6_BASELINE_COMPARISON.md) - FiLM对比分析
+- [项目状态](PROJECT_STATUS.md) - 完整项目状态
 - [Phase 5 计划](docs/plans/PHASE5_RL_LOOP_PLAN.md)
 - [Phase 5 进度](docs/plans/PHASE5_PROGRESS.md)
-- [实验总结](docs/EXPERIMENTS_SUMMARY.md)
+
+## 生成图表
+
+运行以下命令生成对比图表:
+```bash
+python scripts/generate_figures.py
+```
+
+生成的图表位于 `docs/experiments/figures/`:
+- **Fig 1**: Compile Success Rate Comparison
+- **Fig 2**: Best Reward Comparison
+- **Fig 3**: LLM vs Human-Designed Baseline
+- **Fig 4**: Convergence Over 200 Iterations
+- **Fig 5**: Architecture Distribution
+- **Fig 6**: Time Efficiency
 
 ## 旧实验归档
 
@@ -162,5 +210,5 @@ MIT License
 
 ---
 
-*Last Updated: 2026-02-28*
-*Status: Phase 5 In Progress*
+*Last Updated: 2026-03-02*  
+*Status: Phase 5.6 Analysis Complete*
